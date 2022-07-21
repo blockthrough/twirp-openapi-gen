@@ -30,14 +30,14 @@ func (gen *generator) Import(i *proto.Import) {
 		return
 	}
 
-	// timestamps are handled as string of date-time
-	if strings.Contains(i.Filename, "google/protobuf/timestamp.proto") {
+	// TODO(dm): add mapping for google struct, wrappers, empty, and duration
+	if strings.Contains(i.Filename, "google/protobuf") {
 		return
 	}
 
 	protoFile, err := readProtoFile(i.Filename, gen.conf.protoPaths)
 	if err != nil {
-		// log error but don't fail hard
+		logger.log("could not import file %q", i.Filename)
 		return
 	}
 

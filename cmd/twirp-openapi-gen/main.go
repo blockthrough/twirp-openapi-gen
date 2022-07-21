@@ -7,7 +7,7 @@ import (
 
 	"github.com/apex/log"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/go-bridget/twirp-swagger-gen/internal/generator"
+	"github.com/diogogmt/twirp-openapi-gen/internal/generator"
 )
 
 var _ = spew.Dump

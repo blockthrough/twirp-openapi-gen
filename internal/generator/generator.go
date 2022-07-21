@@ -174,6 +174,9 @@ func readProtoFile(filename string, protoPaths []string) (*proto.Proto, error) {
 		}
 		break
 	}
+	if file == nil {
+		return nil, fmt.Errorf("could not read file %q", filename)
+	}
 	defer file.Close()
 
 	parser := proto.NewParser(file)

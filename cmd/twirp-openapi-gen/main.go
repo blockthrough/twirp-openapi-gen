@@ -57,11 +57,11 @@ func run(args []string) error {
 		generator.Format(*format),
 		generator.Verbose(*verbose),
 	}
-	gen, err := generator.NewGenerator(in, *out, opts...)
+	gen, err := generator.NewGenerator(in, opts...)
 	if err != nil {
 		return err
 	}
-	if err := gen.Generate(); err != nil {
+	if err := gen.Generate(*out); err != nil {
 		return err
 	}
 	return nil

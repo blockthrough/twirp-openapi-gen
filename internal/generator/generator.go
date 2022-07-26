@@ -77,11 +77,10 @@ type generator struct {
 
 	conf        *generatorConfig
 	inputFiles  []string
-	outputFile  string
 	packageName string
 }
 
-func NewGenerator(inputFiles []string, outputFile string, options ...Option) (*generator, error) {
+func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 	conf := generatorConfig{}
 	for _, opt := range options {
 		if err := opt(&conf); err != nil {
@@ -106,22 +105,21 @@ func NewGenerator(inputFiles []string, outputFile string, options ...Option) (*g
 		openAPIV3.Servers = append(openAPIV3.Servers, &openapi3.Server{URL: server})
 	}
 
-	logger.logd("generating %q doc for %v on %q", conf.format, inputFiles, outputFile)
+	logger.logd("generating %q doc for %v", conf.format, inputFiles)
 
 	return &generator{
 		inputFiles: inputFiles,
-		outputFile: outputFile,
 		openAPIV3:  &openAPIV3,
 		conf:       &conf,
 	}, nil
 }
 
-func (gen *generator) Generate() error {
+func (gen *generator) Generate(filename string) error {
 	if _, err := gen.Parse(); err != nil {
 		return err
 	}
 
-	if err := gen.Save(); err != nil {
+	if err := gen.Save(filename); err != nil {
 		return err
 	}
 
@@ -141,7 +139,7 @@ func (gen *generator) Parse() (*openapi3.T, error) {
 	return gen.openAPIV3, nil
 }
 
-func (gen *generator) Save() error {
+func (gen *generator) Save(filename string) error {
 	var by []byte
 	var err error
 	switch gen.conf.format {
@@ -149,12 +147,14 @@ func (gen *generator) Save() error {
 		by, err = gen.JSON()
 	case "yaml", "yml":
 		return fmt.Errorf("%q format not supported", gen.conf.format)
+	default:
+		return fmt.Errorf("missing format")
 	}
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(gen.outputFile, by, os.ModePerm^0111)
+	return os.WriteFile(filename, by, os.ModePerm^0111)
 }
 
 func (gen *generator) JSON() ([]byte, error) {

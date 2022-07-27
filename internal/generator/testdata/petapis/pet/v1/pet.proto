@@ -2,8 +2,12 @@ syntax = "proto3";
 
 package pet.v1;
 
+option go_package = "github.com/diogogmt/twirp-openapi-gen/internal/generator/testdata/gen/go/pet/v1";
+
 import "payment/v1alpha1/payment.proto";
 import "google/type/datetime.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/any.proto";
 
 // PetType represents the different types of pets in the pet store.
 enum PetType {
@@ -15,9 +19,12 @@ enum PetType {
 }
 
 service PetStoreService {
+  // GetPet returns details about a pet
+  // It accepts a pet id as an input and returns back the matching pet object
   rpc GetPet(GetPetRequest) returns (GetPetResponse) {}
-  rpc PutPet(PutPetRequest) returns (PutPetResponse) {}
-  rpc DeletePet(DeletePetRequest) returns (DeletePetResponse) {}
+
+  rpc DeletePet(DeletePetRequest) returns (google.protobuf.Empty) {}
+
   rpc PurchasePet(PurchasePetRequest) returns (PurchasePetResponse) {}
 }
 
@@ -42,8 +49,6 @@ message DeletePetRequest {
   string pet_id = 1;
 }
 
-message DeletePetResponse {}
-
 message PurchasePetRequest {
   string pet_id = 1;
   payment.v1alpha1.Order order = 2;
@@ -54,7 +59,37 @@ message PurchasePetResponse {}
 // Pet represents a pet in the pet store.
 message Pet {
   PetType pet_type = 1;
-  string pet_id = 2;
-  string name = 3;
-  google.type.DateTime created_at = 4;
+
+  repeated PetType pet_types = 2;
+
+  // pet_id is an auto-generated id for the pet
+  // the id uniquely identifies a pet in the system
+  string pet_id = 3;
+
+  string name = 4;
+
+  google.type.DateTime created_at = 5;
+
+  repeated google.protobuf.Any details = 5;
+
+  message Vet {
+    string name = 1;
+  }
+
+  Vet vet = 6;
+  repeated Vet vets = 7;
+
+// TODO(dm): add support for oneof
+//  oneof test_oneof {
+//    string p1 = 7;
+//    int32 p2 = 8;
+//  }
+
+// TODO(dm): add support for maps
+//  map<string, Medication> medications = 9;
+//  map<string, int32> vet_visits_by_month = 10;
 }
+
+//message Medication {
+//  string name = 1;
+//}

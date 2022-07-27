@@ -7,6 +7,9 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emicklei/proto v1.9.2
 	github.com/getkin/kin-openapi v0.97.0
+	github.com/twitchtv/twirp v8.1.2+incompatible
+	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b
+	google.golang.org/protobuf v1.28.0
 )
 
 require (

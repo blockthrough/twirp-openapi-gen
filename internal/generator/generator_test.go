@@ -8,6 +8,7 @@ type ProtoRPC struct {
 	name   string
 	input  string
 	output string
+	desc   string
 }
 
 type ProtoMessage struct {
@@ -19,11 +20,16 @@ type ProtoField struct {
 	name      string
 	fieldType string
 	format    string
+	desc      string
+	enums     []string
+	ref       string
+	itemsRef  string
+	itemsType string
 }
 
 func TestGenerator(t *testing.T) {
 	opts := []Option{
-		ProtoPaths([]string{"./testdata"}),
+		ProtoPaths([]string{"./testdata/paymentapis", "./testdata/petapis"}),
 		Servers([]string{"https://example.com"}),
 		Title("Test"),
 		Version("0.1"),
@@ -39,6 +45,10 @@ func TestGenerator(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	if err := gen.Save("./testdata/doc.json"); err != nil {
+		t.Fatal(err)
+	}
+
 	pkgName := "pet.v1"
 	serviceName := "PetStoreService"
 	rpcs := []ProtoRPC{
@@ -46,6 +56,7 @@ func TestGenerator(t *testing.T) {
 			name:   "GetPet",
 			input:  "GetPetRequest",
 			output: "GetPetResponse",
+			desc:   "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object",
 		},
 	}
 	messages := []ProtoMessage{
@@ -62,8 +73,32 @@ func TestGenerator(t *testing.T) {
 			name: "Pet",
 			fields: []ProtoField{
 				{
+					name:      "pet_type",
+					fieldType: "string",
+					enums: []string{
+						"PET_TYPE_UNSPECIFIED",
+						"PET_TYPE_CAT",
+						"PET_TYPE_DOG",
+						"PET_TYPE_SNAKE",
+						"PET_TYPE_HAMSTER",
+					},
+				},
+				{
+					name:      "pet_types",
+					fieldType: "array",
+					enums: []string{
+						"PET_TYPE_UNSPECIFIED",
+						"PET_TYPE_CAT",
+						"PET_TYPE_DOG",
+						"PET_TYPE_SNAKE",
+						"PET_TYPE_HAMSTER",
+					},
+					itemsType: "string",
+				},
+				{
 					name:      "pet_id",
 					fieldType: "string",
+					desc:      "pet_id is an auto-generated id for the pet\\nthe id uniquely identifies a pet in the system",
 				},
 				{
 					name:      "name",
@@ -73,6 +108,17 @@ func TestGenerator(t *testing.T) {
 					name:      "created_at",
 					fieldType: "string",
 					format:    "date-time",
+				},
+				{
+					name:      "vet",
+					fieldType: "object",
+					ref:       "#/components/schemas/pet.v1.Vet",
+				},
+				{
+					name:      "vets",
+					fieldType: "array",
+					itemsRef:  "#/components/schemas/pet.v1.Vet",
+					itemsType: "object",
 				},
 			},
 		},
@@ -85,6 +131,11 @@ func TestGenerator(t *testing.T) {
 			if !ok {
 				t.Errorf("%s: missing rpc %q", pathName, rpc.name)
 			}
+
+			if path.Description != rpc.desc {
+				t.Errorf("%s: expected desc %q but got %q", pathName, rpc.desc, path.Description)
+			}
+
 			post := path.Post
 			if post == nil {
 				t.Errorf("%s: missing post", pathName)
@@ -177,14 +228,14 @@ func TestGenerator(t *testing.T) {
 					t.Errorf("%s: missing property %q", schemaName, messageField.name)
 				}
 
-				if propertyRef.Value == nil {
+				if propertyRef == nil || propertyRef.Value == nil {
 					t.Errorf("%s: missing property ref", schemaName)
 					continue
 				}
 
 				property := propertyRef.Value
 				if property.Type != messageField.fieldType {
-					t.Errorf("%s: expected property type %q but got %q", schemaName, messageField.fieldType, property.Type)
+					t.Errorf("%s: %q expected property type %q but got %q", schemaName, message.name, messageField.fieldType, property.Type)
 					continue
 				}
 
@@ -195,6 +246,39 @@ func TestGenerator(t *testing.T) {
 					}
 				}
 
+				if propertyRef.Ref != messageField.ref {
+					t.Errorf("%s: expected reference %q but got %q", schemaName, messageField.ref, propertyRef.Ref)
+				}
+
+				enums := map[string]struct{}{}
+				if property.Type == "array" {
+					if property.Items == nil || property.Items.Value == nil {
+						t.Errorf("%s: missing property enum array items", schemaName)
+					}
+					for _, enum := range property.Items.Value.Enum {
+						enums[enum.(string)] = struct{}{}
+					}
+
+					if property.Items.Value.Type != messageField.itemsType {
+						t.Errorf("%s: expected %s items type %q but got %q", schemaName, messageField.name, messageField.itemsType, property.Items.Value.Type)
+					}
+					if property.Items.Ref != messageField.itemsRef {
+						t.Errorf("%s: expected %s items ref %q but got %q", schemaName, messageField.name, messageField.itemsRef, property.Items.Ref)
+					}
+				}
+
+				for _, enum := range property.Enum {
+					enums[enum.(string)] = struct{}{}
+				}
+				for _, enum := range messageField.enums {
+					if _, ok := enums[enum]; !ok {
+						t.Errorf("%s: %s missing enum %q", schemaName, messageField.name, enum)
+					}
+				}
+
+				if property.Type == "array" {
+
+				}
 			}
 		}
 	})

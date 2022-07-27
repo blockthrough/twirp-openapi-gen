@@ -78,6 +78,8 @@ type generator struct {
 	conf        *generatorConfig
 	inputFiles  []string
 	packageName string
+
+	enums map[string][]string
 }
 
 func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
@@ -99,6 +101,9 @@ func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 			Version: conf.version,
 		},
 		Paths: openapi3.Paths{},
+		Components: openapi3.Components{
+			Schemas: map[string]*openapi3.SchemaRef{},
+		},
 	}
 
 	for _, server := range conf.servers {
@@ -111,6 +116,7 @@ func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 		inputFiles: inputFiles,
 		openAPIV3:  &openAPIV3,
 		conf:       &conf,
+		enums:      map[string][]string{},
 	}, nil
 }
 

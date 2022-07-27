@@ -14,24 +14,31 @@ func (gen *generator) Handlers() []proto.Handler {
 		proto.WithRPC(gen.RPC),
 		proto.WithMessage(gen.Message),
 		proto.WithImport(gen.Import),
+		proto.WithEnum(gen.Enum),
 	}
 }
 
+func (gen *generator) Enum(enum *proto.Enum) {
+	logger.logd("Enum handler %q %q", gen.packageName, enum.Name)
+	values := []string{}
+	for _, element := range enum.Elements {
+		enumField := element.(*proto.EnumField)
+		values = append(values, enumField.Name)
+	}
+	gen.enums[gen.packageName+"."+enum.Name] = values
+}
+
 func (gen *generator) Package(pkg *proto.Package) {
+	logger.logd("Package handler %q", pkg.Name)
 	gen.packageName = pkg.Name
 }
 
 func (gen *generator) Import(i *proto.Import) {
-	// the exclusion here is more about path traversal than it is
-	// about the structure of google proto messages. The annotations
-	// could serve to document a REST API, which goes beyond what
-	// Twitch RPC does out of the box.
-	if strings.Contains(i.Filename, "google/api/annotations.proto") {
-		return
-	}
+	logger.logd("Import handler %q %q", gen.packageName, i.Filename)
 
-	// TODO(dm): add mapping for google struct, wrappers, empty, and duration
-	if strings.Contains(i.Filename, "google/protobuf") {
+	// Instead of loading and generating the OpenAPI docs for the google proto definitions,
+	// its known types are mapped to OpenAPI types; see aliases.go.
+	if strings.Contains(i.Filename, "google/") {
 		return
 	}
 
@@ -54,15 +61,15 @@ func (gen *generator) Import(i *proto.Import) {
 }
 
 func (gen *generator) RPC(rpc *proto.RPC) {
+	logger.logd("RPC handler %q %q", gen.packageName, rpc.Name)
 	parent, ok := rpc.Parent.(*proto.Service)
 	if !ok {
 		panic("parent is not proto.service")
 	}
-
 	pathName := filepath.Join("/"+gen.conf.pathPrefix+"/", gen.packageName+"."+parent.Name, rpc.Name)
 
-	responseDesc := ""
 	gen.openAPIV3.Paths[pathName] = &openapi3.PathItem{
+		Description: description(rpc.Comment),
 		Post: &openapi3.Operation{
 			Summary: rpc.Name,
 			RequestBody: &openapi3.RequestBodyRef{
@@ -77,7 +84,6 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 			Responses: map[string]*openapi3.ResponseRef{
 				"200": {
 					Value: &openapi3.Response{
-						Description: &responseDesc,
 						Content: openapi3.Content{"application/json": &openapi3.MediaType{
 							Schema: &openapi3.SchemaRef{
 								Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.ReturnsType),
@@ -92,189 +98,168 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 }
 
 func (gen *generator) Message(msg *proto.Message) {
-	definitionName := fmt.Sprintf("%s.%s", gen.packageName, msg.Name)
+	logger.logd("Message handler %q %q", gen.packageName, msg.Name)
 
-	schemaPropsV3 := openapi3.Schemas{}
+	schemaProps := openapi3.Schemas{}
 
-	fieldOrder := []string{}
-
-	allFields := msg.Elements
+	// TODO(dm): test OneOf elements
+	//for _, element := range msg.Elements {
+	//	switch val := element.(type) {
+	//	case *proto.Oneof:
+	//		// We're unpacking val.Elements into the field list,
+	//		// which may or may not be correct. The oneof semantics
+	//		// likely bring in edge-cases.
+	//		allFields = append(allFields, val.Elements...)
+	//	default:
+	//		// No need to unpack for *proto.NormalField,...
+	//	}
+	//}
 
 	for _, element := range msg.Elements {
 		switch val := element.(type) {
-		case *proto.Oneof:
-			// We're unpacking val.Elements into the field list,
-			// which may or may not be correct. The oneof semantics
-			// likely bring in edge-cases.
-			allFields = append(allFields, val.Elements...)
-		default:
-			// No need to unpack for *proto.NormalField,...
-		}
-	}
-
-	for _, element := range allFields {
-		switch val := element.(type) {
+		case *proto.Message:
+			logger.logd("proto.Message")
+			gen.Message(val)
 		case *proto.Comment:
+			logger.logd("proto.Comment")
 		case *proto.Oneof:
-			// Nothing.
+			logger.logd("proto.Oneof")
 		case *proto.OneOfField:
-			gen.addField(schemaPropsV3, &fieldOrder, val.Field, false)
+			logger.logd("proto.OneOfField")
+			gen.addField(schemaProps, val.Field, false)
 		case *proto.MapField:
-			gen.addField(schemaPropsV3, &fieldOrder, val.Field, false)
+			logger.logd("proto.MapField")
+			gen.addField(schemaProps, val.Field, false)
 		case *proto.NormalField:
-			gen.addField(schemaPropsV3, &fieldOrder, val.Field, val.Repeated)
+			logger.logd("proto.NormalField")
+			gen.addField(schemaProps, val.Field, val.Repeated)
 		default:
-			logger.log("unknown field type: %T", element)
+			logger.logd("unknown field type: %T", element)
 		}
 	}
 
-	schemaDesc := description(msg.Comment)
-	if len(fieldOrder) > 0 {
-		// This is required to infer order, as json object keys
-		// don't keep their order. Should have been an array.
-		schemaDesc = schemaDesc + "\n\nFields: " + strings.Join(fieldOrder, ", ")
-	}
-
-	if gen.openAPIV3.Components.Schemas == nil {
-		gen.openAPIV3.Components.Schemas = openapi3.Schemas{}
-	}
-	gen.openAPIV3.Components.Schemas[definitionName] = &openapi3.SchemaRef{
+	gen.openAPIV3.Components.Schemas[gen.packageName+"."+msg.Name] = &openapi3.SchemaRef{
 		Value: &openapi3.Schema{
-			Title:       comment(msg.Comment),
-			Description: strings.TrimSpace(schemaDesc),
+			Description: description(msg.Comment),
 			Type:        "object",
-			Properties:  schemaPropsV3,
+			Properties:  schemaProps,
 		},
 	}
 }
 
-func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, fieldOrder *[]string, field *proto.Field, repeated bool) {
-	var allowedValues = []string{
-		"boolean",
-		"integer",
-		"number",
-		"object",
-		"string",
-	}
-
-	fieldTitle := comment(field.Comment)
+func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Field, repeated bool) {
 	fieldDescription := description(field.Comment)
-	//fieldName := fmt.Sprintf("%s.%s", gen.packageName, field.Name)
 	fieldName := field.Name
 	fieldType := field.Type
 	fieldFormat := field.Type
 
-	p, ok := typeAliases[fieldType]
-	if ok {
+	// map proto types to open api
+	if p, ok := typeAliases[fieldType]; ok {
 		fieldType = p.Type
 		fieldFormat = p.Format
 	}
+
 	if fieldType == fieldFormat {
 		fieldFormat = ""
 	}
 
-	*fieldOrder = append(*fieldOrder, fieldName)
-
-	if _, ok := find(allowedValues, fieldType); ok {
+	// Build the schema for native types that don't need to reference other schemas
+	// https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#data-types
+	switch fieldType {
+	case "boolean", "integer", "number", "string", "object":
 		fieldSchemaV3 := openapi3.SchemaRef{
 			Value: &openapi3.Schema{
-				Title:       fieldTitle,
 				Description: fieldDescription,
 				Type:        fieldType,
 				Format:      fieldFormat,
 			},
 		}
-		if repeated {
-			schemaPropsV3[fieldName] = &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
-					Title:       fieldTitle,
-					Description: fieldDescription,
-					Type:        "array",
-					Format:      fieldFormat,
-					Items:       &fieldSchemaV3,
-				},
-			}
-		} else {
+		if !repeated {
 			schemaPropsV3[fieldName] = &fieldSchemaV3
+			return
+		}
+		schemaPropsV3[fieldName] = &openapi3.SchemaRef{
+			Value: &openapi3.Schema{
+				Description: fieldDescription,
+				Type:        "array",
+				Format:      fieldFormat,
+				Items:       &fieldSchemaV3,
+			},
 		}
 		return
 	}
 
-	refV3 := fmt.Sprintf("#/components/schemas/%s", fieldType)
-
-	if repeated {
+	if enumValues, ok := gen.enums[gen.packageName+"."+field.Type]; ok {
+		enumI := []interface{}{}
+		for _, v := range enumValues {
+			enumI = append(enumI, v)
+		}
+		if !repeated {
+			schemaPropsV3[fieldName] = &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					Type:        "string",
+					Enum:        enumI,
+					Description: fieldDescription,
+				},
+			}
+			return
+		}
 		schemaPropsV3[fieldName] = &openapi3.SchemaRef{
 			Value: &openapi3.Schema{
-				Title:       fieldTitle,
 				Description: fieldDescription,
 				Type:        "array",
 				Items: &openapi3.SchemaRef{
-					Ref: refV3,
+					Value: &openapi3.Schema{
+						Type: "string",
+						Enum: enumI,
+					},
 				},
+			},
+		}
+		return
+	}
+
+	// prefix custom types with the package name
+	ref := fmt.Sprintf("#/components/schemas/%s", fieldType)
+	if !strings.Contains(fieldType, ".") {
+		ref = fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, fieldType)
+	}
+
+	if !repeated {
+		schemaPropsV3[fieldName] = &openapi3.SchemaRef{
+			Ref: ref,
+			Value: &openapi3.Schema{
+				Description: fieldDescription,
+				Type:        "object",
 			},
 		}
 		return
 	}
 
 	schemaPropsV3[fieldName] = &openapi3.SchemaRef{
-		Ref: refV3,
 		Value: &openapi3.Schema{
-			Title:       fieldTitle,
 			Description: fieldDescription,
+			Type:        "array",
+			Items: &openapi3.SchemaRef{
+				Ref: ref,
+				Value: &openapi3.Schema{
+					Type: "object",
+				},
+			},
 		},
 	}
-
-	return
-}
-
-func comment(comment *proto.Comment) string {
-	if comment == nil {
-		return ""
-	}
-
-	result := ""
-	for _, line := range comment.Lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			break
-		}
-		result += " " + line
-	}
-	if len(result) > 1 {
-		return result[1:]
-	}
-	return ""
 }
 
 func description(comment *proto.Comment) string {
 	if comment == nil {
 		return ""
 	}
-
-	grab := false
-
 	result := []string{}
 	for _, line := range comment.Lines {
 		line = strings.TrimSpace(line)
-		if line == "" {
-			if grab {
-				break
-			}
-			grab = true
-			continue
-		}
-		if grab {
+		if len(line) > 0 {
 			result = append(result, line)
 		}
 	}
 	return strings.Join(result, "\n")
-}
-
-func find(haystack []string, needle string) (int, bool) {
-	for k, v := range haystack {
-		if v == needle {
-			return k, true
-		}
-	}
-	return -1, false
 }

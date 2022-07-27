@@ -25,3 +25,8 @@ clean:
 
 google:
 	git clone https://github.com/googleapis/googleapis google
+
+buf-gen:
+	rm -rf ./internal/generator/testdata/gen && \
+	buf generate ./internal/generator/testdata/paymentapis  --template ./internal/generator/testdata/paymentapis/buf.gen.yaml && \
+ 	buf generate ./internal/generator/testdata/petapis  --template ./internal/generator/testdata/petapis/buf.gen.yaml

@@ -1,0 +1,10 @@
+version: v1
+managed:
+  enabled: true
+plugins:
+  - name: go
+    out: internal/generator/testdata/gen/go
+    opt: paths=source_relative
+  - name: twirp
+    out: internal/generator/testdata/gen/go
+    opt: paths=source_relative

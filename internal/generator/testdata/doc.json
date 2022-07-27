@@ -1,0 +1,239 @@
+{
+  "components": {
+    "schemas": {
+      "payment.v1alpha1.Order": {
+        "description": "Order represents a monetary order.",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/google.type.Money"
+          },
+          "order_id": {
+            "type": "string"
+          },
+          "payment_provider": {
+            "$ref": "#/components/schemas/payment.v1alpha1.PaymentProvider"
+          },
+          "recipient_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.DeletePetRequest": {
+        "properties": {
+          "pet_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.GetPetRequest": {
+        "properties": {
+          "pet_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.GetPetResponse": {
+        "properties": {
+          "pet": {
+            "$ref": "#/components/schemas/pet.v1.Pet"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.Pet": {
+        "description": "Pet represents a pet in the pet store.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "details": {
+            "items": {
+              "$ref": "#/components/schemas/google.protobuf.Any"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pet_id": {
+            "description": "pet_id is an auto-generated id for the pet\nthe id uniquely identifies a pet in the system",
+            "type": "string"
+          },
+          "pet_type": {
+            "enum": [
+              "PET_TYPE_UNSPECIFIED",
+              "PET_TYPE_CAT",
+              "PET_TYPE_DOG",
+              "PET_TYPE_SNAKE",
+              "PET_TYPE_HAMSTER"
+            ],
+            "type": "string"
+          },
+          "pet_types": {
+            "items": {
+              "enum": [
+                "PET_TYPE_UNSPECIFIED",
+                "PET_TYPE_CAT",
+                "PET_TYPE_DOG",
+                "PET_TYPE_SNAKE",
+                "PET_TYPE_HAMSTER"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "vet": {
+            "$ref": "#/components/schemas/pet.v1.Vet"
+          },
+          "vets": {
+            "items": {
+              "$ref": "#/components/schemas/pet.v1.Vet"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.PurchasePetRequest": {
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/payment.v1alpha1.Order"
+          },
+          "pet_id": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.PurchasePetResponse": {
+        "type": "object"
+      },
+      "pet.v1.PutPetRequest": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "pet_type": {
+            "enum": [
+              "PET_TYPE_UNSPECIFIED",
+              "PET_TYPE_CAT",
+              "PET_TYPE_DOG",
+              "PET_TYPE_SNAKE",
+              "PET_TYPE_HAMSTER"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.PutPetResponse": {
+        "properties": {
+          "pet": {
+            "$ref": "#/components/schemas/pet.v1.Pet"
+          }
+        },
+        "type": "object"
+      },
+      "pet.v1.Vet": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Test",
+    "version": "0.1"
+  },
+  "openapi": "3.0.0",
+  "paths": {
+    "/pet.v1.PetStoreService/DeletePet": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/pet.v1.DeletePetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pet.v1.google.protobuf.Empty"
+                }
+              }
+            }
+          }
+        },
+        "summary": "DeletePet"
+      }
+    },
+    "/pet.v1.PetStoreService/GetPet": {
+      "description": "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/pet.v1.GetPetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pet.v1.GetPetResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "GetPet"
+      }
+    },
+    "/pet.v1.PetStoreService/PurchasePet": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/pet.v1.PurchasePetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/pet.v1.PurchasePetResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "PurchasePet"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://example.com"
+    }
+  ]
+}

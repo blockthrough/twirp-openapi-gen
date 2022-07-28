@@ -34,8 +34,9 @@ $  go install github.com/diogogmt/twirp-openapi-gen/cmd/twirp-openapi-gen@latest
 
 
 ### Notes
-* The requestBody property of the path post operation only has one content-type of application/json type, and its schema always references the RPC input message.
+* The requestBody property of the path post operation only has one content-type of application/json, and its schema always references the RPC input message.
 * Comments can be added above an RPC, message, or field resources. Inline comments are not supported.
+* Path items only have one response with a 200 code using the schema of the message returned by the RPC method.
 
 
 ## Usage

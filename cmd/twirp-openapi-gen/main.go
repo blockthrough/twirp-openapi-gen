@@ -2,15 +2,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 
-	"github.com/apex/log"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/diogogmt/twirp-openapi-gen/internal/generator"
 )
-
-var _ = spew.Dump
 
 type arrayFlags []string
 
@@ -25,7 +22,8 @@ func (i *arrayFlags) Set(value string) error {
 
 func main() {
 	if err := run(os.Args); err != nil {
-		log.WithError(err).Fatal("exit with error")
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 }
 

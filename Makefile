@@ -1,32 +1,33 @@
-.PHONY: all build test test-buf clean google
+BUF_VERSION := 1.6.0
+PROTOC_GEN_GO_VER := 1.5.2
+TWIRP_VER := 8.1.2
 
-PATH := $(PWD)/build:$(PATH)
-
-all:
-	@drone exec
-
+## build:
 build:
 	go build -o build/ ./cmd/...
 
+## test:
 test:
-	twirp-swagger-gen -in example/example.proto -out example/simple/example.swagger.json -host test.example.com
-	twirp-swagger-gen -in example/google_timestamp.proto -out example/simple/google_timestamp.swagger.json -host test.example.com
+	go test ./internal/generator
 
-test-buf:
-	GOBIN=/usr/local/bin go install github.com/bufbuild/buf/cmd/...@v1.0.0-rc12
-	buf --version
-	cd example && buf mod update
-	buf generate --template example/buf.gen.yaml --path example
+## fmt: format the code using goimports
+fmt:
+	goimports -w $(shell find . -type f -name "*.go" -not -name "*.pb.go" -not -name "*.twirp.go")
 
-clean:
-	go fmt ./...
-	go mod download
-	go mod tidy
-
-google:
-	git clone https://github.com/googleapis/googleapis google
-
-buf-gen:
+## gen: generate go twirp code using buf
+gen:
 	rm -rf ./internal/generator/testdata/gen && \
 	buf generate ./internal/generator/testdata/paymentapis  --template ./internal/generator/testdata/paymentapis/buf.gen.yaml && \
  	buf generate ./internal/generator/testdata/petapis  --template ./internal/generator/testdata/petapis/buf.gen.yaml
+
+## tools: download tools; buf, protoc-gen-go and protoc-gen-twirp
+tools:
+	go install github.com/bufbuild/buf/cmd/buf@v$(BUF_VERSION)
+	go install github.com/golang/protobuf/protoc-gen-go@v$(PROTOC_GEN_GO_VER)
+	go install github.com/twitchtv/twirp/protoc-gen-twirp@v$(TWIRP_VER)
+
+.PHONY: help
+## help: prints this help message
+help:
+	@echo "Usage: \n"
+	@sed -n 's/^##//p' $(MAKEFILE_LIST) | column -t -s ':' |  sed -e 's/^/ /'

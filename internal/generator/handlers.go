@@ -2,10 +2,15 @@ package generator
 
 import (
 	"fmt"
-	"github.com/emicklei/proto"
-	"github.com/getkin/kin-openapi/openapi3"
 	"path/filepath"
 	"strings"
+
+	"github.com/emicklei/proto"
+	"github.com/getkin/kin-openapi/openapi3"
+)
+
+var (
+	successDescription = "Success"
 )
 
 func (gen *generator) Handlers() []proto.Handler {
@@ -84,6 +89,7 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 			Responses: map[string]*openapi3.ResponseRef{
 				"200": {
 					Value: &openapi3.Response{
+						Description: &successDescription,
 						Content: openapi3.Content{"application/json": &openapi3.MediaType{
 							Schema: &openapi3.SchemaRef{
 								Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.ReturnsType),

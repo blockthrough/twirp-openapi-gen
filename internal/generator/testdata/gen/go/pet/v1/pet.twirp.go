@@ -16,6 +16,8 @@ import proto "google.golang.org/protobuf/proto"
 import twirp "github.com/twitchtv/twirp"
 import ctxsetters "github.com/twitchtv/twirp/ctxsetters"
 
+import google_protobuf1 "google.golang.org/protobuf/types/known/emptypb"
+
 import bytes "bytes"
 import errors "errors"
 import io "io"
@@ -33,7 +35,13 @@ const _ = twirp.TwirpPackageMinVersion_8_1_0
 // =========================
 
 type PetStoreService interface {
+	// GetPet returns details about a pet
+	// It accepts a pet id as an input and returns back the matching pet object
 	GetPet(context.Context, *GetPetRequest) (*GetPetResponse, error)
+
+	DeletePet(context.Context, *DeletePetRequest) (*google_protobuf1.Empty, error)
+
+	PurchasePet(context.Context, *PurchasePetRequest) (*PurchasePetResponse, error)
 }
 
 // ===============================
@@ -42,7 +50,7 @@ type PetStoreService interface {
 
 type petStoreServiceProtobufClient struct {
 	client      HTTPClient
-	urls        [1]string
+	urls        [3]string
 	interceptor twirp.Interceptor
 	opts        twirp.ClientOptions
 }
@@ -70,8 +78,10 @@ func NewPetStoreServiceProtobufClient(baseURL string, client HTTPClient, opts ..
 	// Build method URLs: <baseURL>[<prefix>]/<package>.<Service>/<Method>
 	serviceURL := sanitizeBaseURL(baseURL)
 	serviceURL += baseServicePath(pathPrefix, "pet.v1", "PetStoreService")
-	urls := [1]string{
+	urls := [3]string{
 		serviceURL + "GetPet",
+		serviceURL + "DeletePet",
+		serviceURL + "PurchasePet",
 	}
 
 	return &petStoreServiceProtobufClient{
@@ -128,13 +138,105 @@ func (c *petStoreServiceProtobufClient) callGetPet(ctx context.Context, in *GetP
 	return out, nil
 }
 
+func (c *petStoreServiceProtobufClient) DeletePet(ctx context.Context, in *DeletePetRequest) (*google_protobuf1.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "pet.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "PetStoreService")
+	ctx = ctxsetters.WithMethodName(ctx, "DeletePet")
+	caller := c.callDeletePet
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *DeletePetRequest) (*google_protobuf1.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*DeletePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*DeletePetRequest) when calling interceptor")
+					}
+					return c.callDeletePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf1.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf1.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *petStoreServiceProtobufClient) callDeletePet(ctx context.Context, in *DeletePetRequest) (*google_protobuf1.Empty, error) {
+	out := new(google_protobuf1.Empty)
+	ctx, err := doProtobufRequest(ctx, c.client, c.opts.Hooks, c.urls[1], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *petStoreServiceProtobufClient) PurchasePet(ctx context.Context, in *PurchasePetRequest) (*PurchasePetResponse, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "pet.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "PetStoreService")
+	ctx = ctxsetters.WithMethodName(ctx, "PurchasePet")
+	caller := c.callPurchasePet
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *PurchasePetRequest) (*PurchasePetResponse, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*PurchasePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*PurchasePetRequest) when calling interceptor")
+					}
+					return c.callPurchasePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*PurchasePetResponse)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*PurchasePetResponse) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *petStoreServiceProtobufClient) callPurchasePet(ctx context.Context, in *PurchasePetRequest) (*PurchasePetResponse, error) {
+	out := new(PurchasePetResponse)
+	ctx, err := doProtobufRequest(ctx, c.client, c.opts.Hooks, c.urls[2], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
 // ===========================
 // PetStoreService JSON Client
 // ===========================
 
 type petStoreServiceJSONClient struct {
 	client      HTTPClient
-	urls        [1]string
+	urls        [3]string
 	interceptor twirp.Interceptor
 	opts        twirp.ClientOptions
 }
@@ -162,8 +264,10 @@ func NewPetStoreServiceJSONClient(baseURL string, client HTTPClient, opts ...twi
 	// Build method URLs: <baseURL>[<prefix>]/<package>.<Service>/<Method>
 	serviceURL := sanitizeBaseURL(baseURL)
 	serviceURL += baseServicePath(pathPrefix, "pet.v1", "PetStoreService")
-	urls := [1]string{
+	urls := [3]string{
 		serviceURL + "GetPet",
+		serviceURL + "DeletePet",
+		serviceURL + "PurchasePet",
 	}
 
 	return &petStoreServiceJSONClient{
@@ -206,6 +310,98 @@ func (c *petStoreServiceJSONClient) GetPet(ctx context.Context, in *GetPetReques
 func (c *petStoreServiceJSONClient) callGetPet(ctx context.Context, in *GetPetRequest) (*GetPetResponse, error) {
 	out := new(GetPetResponse)
 	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[0], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *petStoreServiceJSONClient) DeletePet(ctx context.Context, in *DeletePetRequest) (*google_protobuf1.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "pet.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "PetStoreService")
+	ctx = ctxsetters.WithMethodName(ctx, "DeletePet")
+	caller := c.callDeletePet
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *DeletePetRequest) (*google_protobuf1.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*DeletePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*DeletePetRequest) when calling interceptor")
+					}
+					return c.callDeletePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf1.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf1.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *petStoreServiceJSONClient) callDeletePet(ctx context.Context, in *DeletePetRequest) (*google_protobuf1.Empty, error) {
+	out := new(google_protobuf1.Empty)
+	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[1], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *petStoreServiceJSONClient) PurchasePet(ctx context.Context, in *PurchasePetRequest) (*PurchasePetResponse, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "pet.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "PetStoreService")
+	ctx = ctxsetters.WithMethodName(ctx, "PurchasePet")
+	caller := c.callPurchasePet
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *PurchasePetRequest) (*PurchasePetResponse, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*PurchasePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*PurchasePetRequest) when calling interceptor")
+					}
+					return c.callPurchasePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*PurchasePetResponse)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*PurchasePetResponse) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *petStoreServiceJSONClient) callPurchasePet(ctx context.Context, in *PurchasePetRequest) (*PurchasePetResponse, error) {
+	out := new(PurchasePetResponse)
+	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[2], in, out)
 	if err != nil {
 		twerr, ok := err.(twirp.Error)
 		if !ok {
@@ -319,6 +515,12 @@ func (s *petStoreServiceServer) ServeHTTP(resp http.ResponseWriter, req *http.Re
 	switch method {
 	case "GetPet":
 		s.serveGetPet(ctx, resp, req)
+		return
+	case "DeletePet":
+		s.serveDeletePet(ctx, resp, req)
+		return
+	case "PurchasePet":
+		s.servePurchasePet(ctx, resp, req)
 		return
 	default:
 		msg := fmt.Sprintf("no handler for path %q", req.URL.Path)
@@ -484,6 +686,366 @@ func (s *petStoreServiceServer) serveGetPetProtobuf(ctx context.Context, resp ht
 	}
 	if respContent == nil {
 		s.writeError(ctx, resp, twirp.InternalError("received a nil *GetPetResponse and nil error while calling GetPet. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	respBytes, err := proto.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal proto response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/protobuf")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *petStoreServiceServer) serveDeletePet(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	header := req.Header.Get("Content-Type")
+	i := strings.Index(header, ";")
+	if i == -1 {
+		i = len(header)
+	}
+	switch strings.TrimSpace(strings.ToLower(header[:i])) {
+	case "application/json":
+		s.serveDeletePetJSON(ctx, resp, req)
+	case "application/protobuf":
+		s.serveDeletePetProtobuf(ctx, resp, req)
+	default:
+		msg := fmt.Sprintf("unexpected Content-Type: %q", req.Header.Get("Content-Type"))
+		twerr := badRouteError(msg, req.Method, req.URL.Path)
+		s.writeError(ctx, resp, twerr)
+	}
+}
+
+func (s *petStoreServiceServer) serveDeletePetJSON(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "DeletePet")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	rawReqBody := json.RawMessage{}
+	if err := d.Decode(&rawReqBody); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+	reqContent := new(DeletePetRequest)
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = unmarshaler.Unmarshal(rawReqBody, reqContent); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+
+	handler := s.PetStoreService.DeletePet
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *DeletePetRequest) (*google_protobuf1.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*DeletePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*DeletePetRequest) when calling interceptor")
+					}
+					return s.PetStoreService.DeletePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf1.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf1.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf1.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf1.Empty and nil error while calling DeletePet. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	marshaler := &protojson.MarshalOptions{UseProtoNames: !s.jsonCamelCase, EmitUnpopulated: !s.jsonSkipDefaults}
+	respBytes, err := marshaler.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal json response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *petStoreServiceServer) serveDeletePetProtobuf(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "DeletePet")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	buf, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		s.handleRequestBodyError(ctx, resp, "failed to read request body", err)
+		return
+	}
+	reqContent := new(DeletePetRequest)
+	if err = proto.Unmarshal(buf, reqContent); err != nil {
+		s.writeError(ctx, resp, malformedRequestError("the protobuf request could not be decoded"))
+		return
+	}
+
+	handler := s.PetStoreService.DeletePet
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *DeletePetRequest) (*google_protobuf1.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*DeletePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*DeletePetRequest) when calling interceptor")
+					}
+					return s.PetStoreService.DeletePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf1.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf1.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf1.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf1.Empty and nil error while calling DeletePet. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	respBytes, err := proto.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal proto response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/protobuf")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *petStoreServiceServer) servePurchasePet(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	header := req.Header.Get("Content-Type")
+	i := strings.Index(header, ";")
+	if i == -1 {
+		i = len(header)
+	}
+	switch strings.TrimSpace(strings.ToLower(header[:i])) {
+	case "application/json":
+		s.servePurchasePetJSON(ctx, resp, req)
+	case "application/protobuf":
+		s.servePurchasePetProtobuf(ctx, resp, req)
+	default:
+		msg := fmt.Sprintf("unexpected Content-Type: %q", req.Header.Get("Content-Type"))
+		twerr := badRouteError(msg, req.Method, req.URL.Path)
+		s.writeError(ctx, resp, twerr)
+	}
+}
+
+func (s *petStoreServiceServer) servePurchasePetJSON(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "PurchasePet")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	rawReqBody := json.RawMessage{}
+	if err := d.Decode(&rawReqBody); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+	reqContent := new(PurchasePetRequest)
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = unmarshaler.Unmarshal(rawReqBody, reqContent); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+
+	handler := s.PetStoreService.PurchasePet
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *PurchasePetRequest) (*PurchasePetResponse, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*PurchasePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*PurchasePetRequest) when calling interceptor")
+					}
+					return s.PetStoreService.PurchasePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*PurchasePetResponse)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*PurchasePetResponse) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *PurchasePetResponse
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *PurchasePetResponse and nil error while calling PurchasePet. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	marshaler := &protojson.MarshalOptions{UseProtoNames: !s.jsonCamelCase, EmitUnpopulated: !s.jsonSkipDefaults}
+	respBytes, err := marshaler.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal json response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *petStoreServiceServer) servePurchasePetProtobuf(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "PurchasePet")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	buf, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		s.handleRequestBodyError(ctx, resp, "failed to read request body", err)
+		return
+	}
+	reqContent := new(PurchasePetRequest)
+	if err = proto.Unmarshal(buf, reqContent); err != nil {
+		s.writeError(ctx, resp, malformedRequestError("the protobuf request could not be decoded"))
+		return
+	}
+
+	handler := s.PetStoreService.PurchasePet
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *PurchasePetRequest) (*PurchasePetResponse, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*PurchasePetRequest)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*PurchasePetRequest) when calling interceptor")
+					}
+					return s.PetStoreService.PurchasePet(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*PurchasePetResponse)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*PurchasePetResponse) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *PurchasePetResponse
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *PurchasePetResponse and nil error while calling PurchasePet. nil responses are not supported"))
 		return
 	}
 
@@ -1085,52 +1647,49 @@ func callClientError(ctx context.Context, h *twirp.ClientHooks, err twirp.Error)
 }
 
 var twirpFileDescriptor0 = []byte{
-	// 745 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x54, 0xdd, 0x6e, 0xe3, 0x44,
-	0x14, 0x6e, 0xec, 0x26, 0x69, 0x4f, 0xba, 0x5d, 0x6b, 0x68, 0x91, 0x89, 0x00, 0x85, 0xac, 0x84,
-	0xa2, 0x95, 0xd6, 0x56, 0x02, 0x17, 0xd0, 0x0b, 0xa4, 0xa4, 0x0d, 0xdd, 0x0a, 0xda, 0xb5, 0x9c,
-	0x10, 0x15, 0xb4, 0x92, 0x35, 0x89, 0xcf, 0xa6, 0x16, 0xf1, 0xcc, 0xac, 0x7d, 0x12, 0xe4, 0xb7,
-	0x41, 0x5c, 0x22, 0x9e, 0x84, 0xc7, 0xe0, 0x92, 0xa7, 0x58, 0xcd, 0x38, 0x69, 0xbd, 0x55, 0xef,
-	0x8e, 0xbf, 0xef, 0x3b, 0xdf, 0xf9, 0xc9, 0x9c, 0x80, 0xa3, 0x90, 0xfc, 0x4d, 0xdf, 0x57, 0x48,
-	0x9e, 0xca, 0x24, 0x49, 0xd6, 0xd0, 0xe1, 0xa6, 0xdf, 0xfe, 0x52, 0xf1, 0x22, 0x45, 0xa1, 0x59,
-	0xbe, 0x52, 0x77, 0xbc, 0xef, 0x6f, 0x81, 0x52, 0xd7, 0x6e, 0x2f, 0xa5, 0x5c, 0xae, 0xd0, 0xa7,
-	0x42, 0xa1, 0x1f, 0x73, 0x42, 0x4a, 0x52, 0xdc, 0x72, 0x9f, 0x6d, 0x39, 0xf3, 0x35, 0x5f, 0xbf,
-	0xf3, 0xb9, 0x28, 0x4a, 0xaa, 0xfb, 0x35, 0x3c, 0xbb, 0x44, 0x0a, 0x90, 0x42, 0x7c, 0xbf, 0xc6,
-	0x9c, 0xd8, 0x29, 0xe8, 0x8a, 0x51, 0x12, 0xbb, 0xb5, 0x4e, 0xad, 0x77, 0x18, 0xd6, 0x15, 0xd2,
-	0x55, 0xdc, 0xf5, 0xe1, 0x78, 0xa7, 0xcb, 0x95, 0x14, 0x39, 0xb2, 0x2f, 0xc0, 0x56, 0x48, 0x46,
-	0xd5, 0x1a, 0xb4, 0xbc, 0xb2, 0x4d, 0x4f, 0x2b, 0x34, 0xde, 0xfd, 0xa7, 0x0e, 0x76, 0x80, 0xc4,
-	0x5e, 0xc2, 0x81, 0xf6, 0xd3, 0x6d, 0x19, 0xed, 0xf1, 0xe0, 0x79, 0x45, 0x3b, 0x2d, 0x14, 0x86,
-	0x4d, 0x55, 0x06, 0x95, 0xda, 0x56, 0xa5, 0x36, 0x63, 0xb0, 0x2f, 0x78, 0x8a, 0xae, 0x6d, 0x40,
-	0x13, 0xb3, 0x6f, 0x01, 0x16, 0x19, 0x72, 0xc2, 0x38, 0xe2, 0xe4, 0xee, 0x9b, 0x26, 0x4e, 0xbd,
-	0x72, 0x4e, 0x4f, 0x17, 0xf3, 0x2e, 0x38, 0xe1, 0x34, 0x49, 0x31, 0x3c, 0xdc, 0x0a, 0x87, 0xc4,
-	0x3c, 0x68, 0xc6, 0x48, 0x3c, 0x59, 0xe5, 0x6e, 0xbd, 0x63, 0xf7, 0x5a, 0x83, 0x93, 0x5d, 0xca,
-	0x6e, 0x35, 0xde, 0x50, 0x14, 0xe1, 0x4e, 0xc4, 0x5e, 0xc0, 0xfe, 0x06, 0x29, 0x77, 0x1b, 0x46,
-	0x5c, 0x6d, 0xdc, 0x9b, 0x21, 0x85, 0x86, 0x64, 0x0e, 0x58, 0xaa, 0xef, 0x36, 0x75, 0x73, 0xaf,
-	0xf7, 0x42, 0x4b, 0xf5, 0x0d, 0x32, 0x70, 0x0f, 0x3a, 0xb5, 0x5e, 0xdd, 0x20, 0x03, 0xf6, 0x03,
-	0xb4, 0x52, 0x8c, 0x93, 0x05, 0xa7, 0x44, 0x8a, 0xdc, 0x3d, 0x34, 0x7e, 0x9f, 0x57, 0xfd, 0xae,
-	0x1f, 0xe8, 0xb1, 0xa0, 0xac, 0x08, 0xab, 0x09, 0x2c, 0x80, 0x4f, 0x36, 0x48, 0xd1, 0x26, 0xc9,
-	0x13, 0xca, 0xa3, 0x79, 0x11, 0xa5, 0x52, 0xd0, 0x9d, 0x0b, 0xc6, 0xe7, 0xab, 0x47, 0x7d, 0xcd,
-	0x8c, 0x6a, 0x54, 0x5c, 0x6b, 0x4d, 0x69, 0xe6, 0x6c, 0x1e, 0xc1, 0xed, 0x5b, 0xb0, 0x67, 0x48,
-	0xf7, 0xbb, 0xad, 0x55, 0x76, 0xeb, 0x42, 0x93, 0xc7, 0x71, 0x86, 0x79, 0xbe, 0xfd, 0x1d, 0x76,
-	0x9f, 0xec, 0x05, 0x3c, 0x53, 0x77, 0x52, 0x60, 0x24, 0xd6, 0xe9, 0x1c, 0xb3, 0xdc, 0xb5, 0x3b,
-	0x76, 0xef, 0x30, 0x3c, 0x32, 0xe0, 0x4d, 0x89, 0xb5, 0x43, 0x70, 0x1e, 0x0f, 0xc3, 0x1c, 0xb0,
-	0x7f, 0xc7, 0x62, 0x5b, 0x45, 0x87, 0xac, 0x07, 0xf5, 0x0d, 0x5f, 0xad, 0xd1, 0x94, 0x68, 0x0d,
-	0xd8, 0x6e, 0x86, 0x87, 0xd4, 0xb0, 0x14, 0x9c, 0x59, 0xdf, 0xd5, 0xda, 0xe7, 0x70, 0xfa, 0xe4,
-	0x60, 0x4f, 0x18, 0x9f, 0x54, 0x8d, 0xeb, 0x15, 0x93, 0xd1, 0x11, 0x00, 0x61, 0x4e, 0x91, 0x14,
-	0x28, 0xdf, 0x85, 0x47, 0x85, 0x5c, 0xc9, 0x28, 0xc6, 0x15, 0x12, 0xc6, 0xdd, 0x0e, 0xc0, 0x43,
-	0xe5, 0xa7, 0xb6, 0xf2, 0xf2, 0x3d, 0x34, 0xb7, 0x0f, 0x96, 0xb9, 0x70, 0x12, 0x8c, 0xa7, 0xd1,
-	0xf4, 0xd7, 0x60, 0x1c, 0xfd, 0x72, 0x33, 0x09, 0xc6, 0xe7, 0x57, 0x3f, 0x5e, 0x8d, 0x2f, 0x9c,
-	0x3d, 0xe6, 0xc0, 0xd1, 0x3d, 0x73, 0x3e, 0x9c, 0x3a, 0xb5, 0x8f, 0x90, 0x8b, 0x37, 0x97, 0x8e,
-	0xc5, 0x18, 0x1c, 0xdf, 0x23, 0x93, 0x9b, 0xe1, 0x4f, 0x63, 0xc7, 0x66, 0x27, 0xe0, 0xdc, 0x63,
-	0xaf, 0x87, 0xd7, 0x93, 0xe9, 0x38, 0x74, 0xf6, 0x07, 0x3f, 0xc3, 0xf3, 0x00, 0x69, 0x42, 0x32,
-	0xc3, 0x09, 0x66, 0x9b, 0x64, 0x81, 0xec, 0x7b, 0x68, 0x94, 0x77, 0xc8, 0x4e, 0x77, 0x1b, 0xfb,
-	0xe8, 0x7e, 0xdb, 0x9f, 0x3e, 0x86, 0xcb, 0x73, 0xed, 0xee, 0x8d, 0xfe, 0xac, 0x01, 0x2c, 0x64,
-	0xba, 0xe5, 0x47, 0x07, 0x01, 0x52, 0xa0, 0x5f, 0x7d, 0x50, 0xfb, 0xed, 0xcd, 0x32, 0xa1, 0xbb,
-	0xf5, 0xdc, 0x5b, 0xc8, 0xd4, 0x8f, 0x13, 0xb9, 0x94, 0xcb, 0x94, 0x7c, 0xfa, 0x23, 0xc9, 0xd4,
-	0x2b, 0xa9, 0x50, 0x70, 0x95, 0xbc, 0x5a, 0xa2, 0xf0, 0x13, 0x41, 0x98, 0x09, 0xbe, 0xf2, 0x97,
-	0x28, 0x30, 0xe3, 0x24, 0x33, 0x5f, 0x2f, 0x34, 0xe6, 0xc4, 0x35, 0xe4, 0x2f, 0xa5, 0x5f, 0xfe,
-	0x7f, 0xfd, 0x65, 0xd9, 0xc1, 0xed, 0xed, 0xdf, 0x56, 0xc3, 0xbc, 0xc8, 0xfe, 0xbf, 0x26, 0x78,
-	0x3b, 0xeb, 0xff, 0x67, 0xb1, 0x32, 0x78, 0x7b, 0x19, 0x8c, 0xae, 0x91, 0xb8, 0x4e, 0xfd, 0xdf,
-	0xd2, 0x8b, 0x3d, 0x3b, 0x9b, 0xf5, 0xe7, 0x0d, 0x73, 0x86, 0xdf, 0x7c, 0x08, 0x00, 0x00, 0xff,
-	0xff, 0xc2, 0xe4, 0x7c, 0x88, 0x07, 0x05, 0x00, 0x00,
+	// 693 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x4d, 0x4f, 0xdb, 0x68,
+	0x10, 0x26, 0x76, 0xc8, 0xc7, 0x64, 0x01, 0xeb, 0x5d, 0xc2, 0x1a, 0xa3, 0x5d, 0xb1, 0x59, 0x69,
+	0xc5, 0xa2, 0xc5, 0x56, 0xd2, 0x5e, 0xca, 0xa5, 0x0a, 0x24, 0x05, 0x54, 0x41, 0xac, 0x24, 0x8d,
+	0x28, 0x42, 0x8a, 0x5e, 0xe2, 0xa9, 0xb1, 0x14, 0x7f, 0x60, 0x4f, 0x52, 0xe5, 0xdf, 0x54, 0x3d,
+	0xf6, 0xa7, 0xf4, 0xda, 0x43, 0xef, 0x3d, 0xf6, 0x57, 0x54, 0xaf, 0x3f, 0x42, 0xf8, 0x90, 0x68,
+	0x6f, 0x93, 0x79, 0x9e, 0x19, 0x3f, 0x33, 0xf3, 0xbc, 0x01, 0x25, 0x40, 0x32, 0xa6, 0x75, 0x23,
+	0x40, 0xd2, 0x83, 0xd0, 0x27, 0x9f, 0x15, 0x44, 0x38, 0xad, 0x6b, 0x7f, 0x05, 0x7c, 0xe6, 0xa2,
+	0x27, 0x50, 0x3e, 0x0e, 0xae, 0x79, 0xdd, 0x48, 0x13, 0x09, 0x4f, 0xd3, 0x6c, 0xdf, 0xb7, 0xc7,
+	0x68, 0xd0, 0x2c, 0x40, 0xc3, 0xe2, 0x84, 0xe4, 0xb8, 0x98, 0x62, 0x5b, 0x29, 0x16, 0xff, 0xba,
+	0x9a, 0xbc, 0x33, 0xd0, 0x0d, 0x68, 0x96, 0x82, 0x9b, 0xf7, 0x41, 0xee, 0xa5, 0x50, 0xed, 0x5f,
+	0x58, 0x39, 0x42, 0x32, 0x91, 0xba, 0x78, 0x33, 0xc1, 0x88, 0x58, 0x15, 0x84, 0x9c, 0xa1, 0x63,
+	0xa9, 0xb9, 0xed, 0xdc, 0x4e, 0xb9, 0xbb, 0x1c, 0x20, 0x9d, 0x58, 0x35, 0x03, 0x56, 0x33, 0x5e,
+	0x14, 0xf8, 0x5e, 0x84, 0xec, 0x4f, 0x90, 0x03, 0xa4, 0x98, 0x55, 0x69, 0x54, 0xf4, 0x64, 0x06,
+	0x5d, 0x30, 0x44, 0xbe, 0xd6, 0x81, 0x15, 0x73, 0xb2, 0xd8, 0x78, 0x17, 0x4a, 0xa2, 0xb1, 0x10,
+	0x1f, 0x17, 0xad, 0x36, 0xd6, 0x16, 0x8a, 0xfa, 0xb3, 0x00, 0xbb, 0xc5, 0x20, 0x09, 0x18, 0x83,
+	0xbc, 0xc7, 0x5d, 0x54, 0xa5, 0x58, 0x42, 0x1c, 0x0b, 0x05, 0x59, 0xc3, 0x9f, 0x53, 0xf0, 0x1f,
+	0x28, 0x2d, 0x1c, 0x23, 0xe1, 0xd3, 0xd3, 0x5d, 0x00, 0x33, 0x27, 0xe1, 0xe8, 0x9a, 0x47, 0x4f,
+	0x93, 0xd9, 0x1e, 0x2c, 0xfb, 0xa1, 0x85, 0x61, 0xac, 0xae, 0xd2, 0xf8, 0x43, 0xcf, 0xae, 0x94,
+	0x9d, 0x4d, 0xef, 0x08, 0xb8, 0x9b, 0xb0, 0x6a, 0x55, 0xf8, 0xfd, 0x4e, 0xef, 0x44, 0x7c, 0xed,
+	0x8b, 0x04, 0xb2, 0x89, 0xbf, 0xb6, 0x96, 0xff, 0xa1, 0x9c, 0x71, 0x23, 0x55, 0xda, 0x96, 0x1f,
+	0x23, 0x97, 0x52, 0x72, 0xb4, 0x20, 0x5f, 0x5e, 0x94, 0x9f, 0xed, 0x36, 0x7f, 0xbb, 0x5b, 0xf6,
+	0x1c, 0x60, 0x14, 0x22, 0x27, 0xb4, 0x86, 0x9c, 0xd4, 0xe5, 0x78, 0xae, 0xaa, 0x9e, 0xb8, 0x46,
+	0x17, 0x9f, 0xd3, 0x5b, 0x9c, 0xb0, 0xef, 0xb8, 0xd8, 0x2d, 0xa7, 0xc4, 0x26, 0x31, 0x1d, 0x8a,
+	0x16, 0x12, 0x77, 0xc6, 0x91, 0x5a, 0xd8, 0x96, 0x77, 0x2a, 0x8d, 0xf5, 0xac, 0x24, 0x33, 0x9a,
+	0xde, 0xf4, 0x66, 0xdd, 0x8c, 0xc4, 0xfe, 0x06, 0x79, 0x8a, 0xa4, 0x16, 0xe3, 0xf6, 0x8b, 0xc2,
+	0xf5, 0x81, 0xb8, 0xd9, 0x14, 0x89, 0xfd, 0x03, 0xf9, 0x29, 0x52, 0xa4, 0x96, 0xe2, 0x7e, 0x0f,
+	0x38, 0x31, 0xa8, 0x6d, 0x82, 0x3c, 0x40, 0x9a, 0x0f, 0x92, 0xbb, 0x1d, 0x64, 0xf7, 0x06, 0x8a,
+	0xe9, 0x22, 0x98, 0x0a, 0xeb, 0x66, 0xbb, 0x3f, 0xec, 0xbf, 0x35, 0xdb, 0xc3, 0x37, 0x67, 0x3d,
+	0xb3, 0x7d, 0x78, 0xf2, 0xea, 0xa4, 0xdd, 0x52, 0x96, 0x98, 0x02, 0xbf, 0xcd, 0x91, 0xc3, 0x66,
+	0x5f, 0xc9, 0xdd, 0xc9, 0xb4, 0x3a, 0x47, 0x8a, 0xc4, 0x18, 0xac, 0xce, 0x33, 0xbd, 0xb3, 0xe6,
+	0xeb, 0xb6, 0x22, 0xb3, 0x75, 0x50, 0xe6, 0xb9, 0xe3, 0xe6, 0x69, 0xaf, 0xdf, 0xee, 0x2a, 0xf9,
+	0xc6, 0xd7, 0x1c, 0xac, 0x99, 0x48, 0x3d, 0xf2, 0x43, 0xec, 0x61, 0x38, 0x75, 0x46, 0xc8, 0x5e,
+	0x40, 0x21, 0x79, 0x2d, 0xac, 0x9a, 0x8d, 0x70, 0xe7, 0x95, 0x69, 0x1b, 0xf7, 0xd3, 0xa9, 0x2b,
+	0x96, 0xd8, 0x4b, 0x28, 0xcf, 0x5d, 0xcb, 0xd4, 0x8c, 0x76, 0xdf, 0xc8, 0xda, 0xc6, 0x83, 0x55,
+	0xb7, 0xc5, 0x83, 0xaf, 0x2d, 0xb1, 0x63, 0xa8, 0x2c, 0xf8, 0x8d, 0x69, 0xf3, 0x1d, 0x3e, 0x30,
+	0xb8, 0xb6, 0xf5, 0x28, 0x96, 0x49, 0x39, 0xf8, 0x90, 0x03, 0x18, 0xf9, 0x6e, 0x4a, 0x3a, 0x28,
+	0x99, 0x48, 0xa6, 0xf8, 0x9a, 0x99, 0xbb, 0xe8, 0xd8, 0x0e, 0x5d, 0x4f, 0xae, 0xf4, 0x91, 0xef,
+	0x1a, 0x96, 0xe3, 0xdb, 0xbe, 0xed, 0x92, 0x41, 0xef, 0x9d, 0x30, 0xd8, 0xf3, 0x03, 0xf4, 0x78,
+	0xe0, 0xec, 0xd9, 0xe8, 0x19, 0x8e, 0x47, 0x18, 0x7a, 0x7c, 0x6c, 0xd8, 0xe8, 0x61, 0xc8, 0xc9,
+	0x0f, 0x0d, 0xc2, 0x88, 0x2c, 0x4e, 0x5c, 0xa4, 0x0c, 0xdb, 0x37, 0x92, 0x7f, 0xc3, 0x8f, 0x92,
+	0x6c, 0x9e, 0x9f, 0x7f, 0x92, 0x0a, 0xf1, 0xa5, 0xeb, 0x9f, 0xe3, 0xe0, 0x72, 0x50, 0xff, 0x26,
+	0xb1, 0x24, 0xb8, 0x3c, 0x32, 0x0f, 0x4e, 0x91, 0xb8, 0x28, 0xfd, 0x2e, 0x89, 0x23, 0xef, 0xef,
+	0x0f, 0xea, 0x57, 0x85, 0x78, 0xfc, 0x67, 0x3f, 0x02, 0x00, 0x00, 0xff, 0xff, 0xcd, 0xe2, 0x3b,
+	0x81, 0x55, 0x05, 0x00, 0x00,
 }

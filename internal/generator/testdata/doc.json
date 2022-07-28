@@ -173,7 +173,8 @@
                   "$ref": "#/components/schemas/pet.v1.google.protobuf.Empty"
                 }
               }
-            }
+            },
+            "description": "Success"
           }
         },
         "summary": "DeletePet"
@@ -199,7 +200,8 @@
                   "$ref": "#/components/schemas/pet.v1.GetPetResponse"
                 }
               }
-            }
+            },
+            "description": "Success"
           }
         },
         "summary": "GetPet"
@@ -224,7 +226,8 @@
                   "$ref": "#/components/schemas/pet.v1.PurchasePetResponse"
                 }
               }
-            }
+            },
+            "description": "Success"
           }
         },
         "summary": "PurchasePet"

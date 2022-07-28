@@ -3,10 +3,11 @@ package generator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/emicklei/proto"
-	"github.com/getkin/kin-openapi/openapi3"
 	"os"
 	"path/filepath"
+
+	"github.com/emicklei/proto"
+	"github.com/getkin/kin-openapi/openapi3"
 )
 
 var logger Lg

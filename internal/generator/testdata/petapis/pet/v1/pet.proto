@@ -70,14 +70,14 @@ message Pet {
 
   google.type.DateTime created_at = 5;
 
-  repeated google.protobuf.Any details = 5;
+  repeated google.protobuf.Any details = 6;
 
   message Vet {
     string name = 1;
   }
 
-  Vet vet = 6;
-  repeated Vet vets = 7;
+  Vet vet = 7;
+  repeated Vet vets = 8;
 
 // TODO(dm): add support for oneof
 //  oneof test_oneof {

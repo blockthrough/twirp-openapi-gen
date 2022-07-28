@@ -79,6 +79,8 @@ Usage of twirp-openapi-gen:
 ## Why
 
 This project is a rewrite of the [twirp-swagger-gen](https://github.com/go-bridget/twirp-swagger-gen) tool adding support to the latest [OpenAPI v3 spec](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md)
+
 Even though there are other ways of generating documentation for proto files, eg; [protoc-gen-doc](github.com/pseudomuto/protoc-gen-doc/), [gnostic](https://github.com/google/gnostic), buf modules, etc. Neither provides an out-of the box solution to have interactive Twirp API docs. 
+
 There is already a rich ecosystem of tools for visualizing and interacting with OpenAPI V3 spec documents. The twirp-openapi-gen tool leverages that and generates valid JSON/YAML OpenAPI V3 documents from the proto definitions.
 The API docs can be imported to any tool that has support for OpenAPI V3, eg; Postman, Swagger, Stoplight, etc..

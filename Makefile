@@ -1,10 +1,19 @@
+TAG_NAME := $(if $(TAG_NAME),$(TAG_NAME),$(shell git describe --exact-match --tags HEAD 2>/dev/null || :))
+BRANCH_NAME := $(if $(BRANCH_NAME),$(BRANCH_NAME),$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || :))
+LONG_VERSION := $(shell git describe --tags --long --abbrev=7 --always HEAD)$(shell echo -$(BRANCH_NAME) | tr / - | grep -v '\-master' || :)
+VERSION := $(if $(TAG_NAME),$(TAG_NAME),$(LONG_VERSION))
+
 BUF_VERSION := 1.6.0
-PROTOC_GEN_GO_VER := 1.5.2
-TWIRP_VER := 8.1.2
+PROTOC_GEN_GO_VERSION := 1.5.2
+TWIRP_VERSION := 8.1.2
 
 ## build:
 build:
 	go build -o build/ ./cmd/...
+
+## install:
+install:
+	go install -ldflags "-X main.version=$(VERSION)" ./cmd/twirp-openapi-gen
 
 ## test:
 test:
@@ -23,8 +32,12 @@ gen:
 ## tools: download tools; buf, protoc-gen-go and protoc-gen-twirp
 tools:
 	go install github.com/bufbuild/buf/cmd/buf@v$(BUF_VERSION)
-	go install github.com/golang/protobuf/protoc-gen-go@v$(PROTOC_GEN_GO_VER)
-	go install github.com/twitchtv/twirp/protoc-gen-twirp@v$(TWIRP_VER)
+	go install github.com/golang/protobuf/protoc-gen-go@v$(PROTOC_GEN_GO_VERSION)
+	go install github.com/twitchtv/twirp/protoc-gen-twirp@v$(TWIRP_VERSION)
+
+## version: print version
+version:
+	echo $(VERSION)
 
 .PHONY: help
 ## help: prints this help message

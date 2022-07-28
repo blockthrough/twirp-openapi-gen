@@ -32,7 +32,7 @@ func TestGenerator(t *testing.T) {
 		ProtoPaths([]string{"./testdata/paymentapis", "./testdata/petapis"}),
 		Servers([]string{"https://example.com"}),
 		Title("Test"),
-		Version("0.1"),
+		DocVersion("0.1"),
 		Format("json"),
 		Verbose(true),
 	}

@@ -16,7 +16,7 @@ type generatorConfig struct {
 	protoPaths []string
 	servers    []string
 	title      string
-	version    string
+	docVersion string
 	pathPrefix string
 	format     string
 	verbose    bool
@@ -45,9 +45,9 @@ func Title(title string) Option {
 	}
 }
 
-func Version(version string) Option {
+func DocVersion(version string) Option {
 	return func(config *generatorConfig) error {
-		config.version = version
+		config.docVersion = version
 		return nil
 	}
 }
@@ -99,7 +99,7 @@ func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 		OpenAPI: "3.0.0",
 		Info: &openapi3.Info{
 			Title:   conf.title,
-			Version: conf.version,
+			Version: conf.docVersion,
 		},
 		Paths: openapi3.Paths{},
 		Components: openapi3.Components{

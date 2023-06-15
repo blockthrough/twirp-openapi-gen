@@ -102,7 +102,7 @@ func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 			Version: conf.docVersion,
 		},
 		Paths: openapi3.Paths{},
-		Components: openapi3.Components{
+		Components: &openapi3.Components{
 			Schemas: map[string]*openapi3.SchemaRef{},
 		},
 	}

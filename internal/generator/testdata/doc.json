@@ -168,11 +168,7 @@
         "responses": {
           "200": {
             "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/pet.v1.google.protobuf.Empty"
-                }
-              }
+              "application/json": {}
             },
             "description": "Success"
           }

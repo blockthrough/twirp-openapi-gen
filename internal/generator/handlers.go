@@ -66,36 +66,50 @@ func (gen *generator) Import(i *proto.Import) {
 }
 
 func (gen *generator) RPC(rpc *proto.RPC) {
-	logger.logd("RPC handler %q %q", gen.packageName, rpc.Name)
+	logger.logd("RPC handler %q %q %q %q", gen.packageName, rpc.Name, rpc.RequestType, rpc.ReturnsType)
 	parent, ok := rpc.Parent.(*proto.Service)
 	if !ok {
 		panic("parent is not proto.service")
 	}
 	pathName := filepath.Join("/"+gen.conf.pathPrefix+"/", gen.packageName+"."+parent.Name, rpc.Name)
 
+	var reqMediaType *openapi3.MediaType
+	switch rpc.RequestType {
+	case "google.protobuf.Empty":
+		reqMediaType = openapi3.NewMediaType()
+	default:
+		reqMediaType = &openapi3.MediaType{
+			Schema: &openapi3.SchemaRef{
+				Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.RequestType),
+			},
+		}
+	}
+
+	var resMediaType *openapi3.MediaType
+	switch rpc.ReturnsType {
+	case "google.protobuf.Empty":
+		resMediaType = openapi3.NewMediaType()
+	default:
+		resMediaType = &openapi3.MediaType{
+			Schema: &openapi3.SchemaRef{
+				Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.ReturnsType),
+			},
+		}
+	}
 	gen.openAPIV3.Paths[pathName] = &openapi3.PathItem{
 		Description: description(rpc.Comment),
 		Post: &openapi3.Operation{
 			Summary: rpc.Name,
 			RequestBody: &openapi3.RequestBodyRef{
 				Value: &openapi3.RequestBody{
-					Content: openapi3.Content{"application/json": &openapi3.MediaType{
-						Schema: &openapi3.SchemaRef{
-							Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.RequestType),
-						},
-					}},
+					Content: openapi3.Content{"application/json": reqMediaType},
 				},
 			},
 			Responses: map[string]*openapi3.ResponseRef{
 				"200": {
 					Value: &openapi3.Response{
 						Description: &successDescription,
-						Content: openapi3.Content{"application/json": &openapi3.MediaType{
-							Schema: &openapi3.SchemaRef{
-								Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.ReturnsType),
-							},
-						},
-						},
+						Content:     openapi3.Content{"application/json": resMediaType},
 					},
 				},
 			},
@@ -158,7 +172,6 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 	fieldName := field.Name
 	fieldType := field.Type
 	fieldFormat := field.Type
-
 	// map proto types to open api
 	if p, ok := typeAliases[fieldType]; ok {
 		fieldType = p.Type

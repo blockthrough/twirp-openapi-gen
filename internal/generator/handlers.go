@@ -9,6 +9,10 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
+const (
+	googleAnyType = "google.protobuf.Any"
+)
+
 var (
 	successDescription = "Success"
 )
@@ -182,6 +186,12 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 		fieldFormat = ""
 	}
 
+	// generate the schema for google well known complex types: https://protobuf.dev/reference/protobuf/google.protobuf/#index
+	switch fieldType {
+	case "google.protobuf.Any":
+		gen.addGoogleAnySchema()
+	}
+
 	// Build the schema for native types that don't need to reference other schemas
 	// https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#data-types
 	switch fieldType {
@@ -263,6 +273,53 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 				Ref: ref,
 				Value: &openapi3.Schema{
 					Type: "object",
+				},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleAnySchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleAnyType]; ok {
+		return
+	}
+	gen.openAPIV3.Components.Schemas[googleAnyType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+The JSON representation of an Any value uses the regular
+representation of the deserialized, embedded message, with an
+additional field @type which contains the type URL. Example:
+
+	package google.profile;
+	message Person {
+	  string first_name = 1;
+	  string last_name = 2;
+	}
+
+	{
+	  "@type": "type.googleapis.com/google.profile.Person",
+	  "firstName": <string>,
+	  "lastName": <string>
+	}
+
+If the embedded message type is well-known and has a custom JSON
+representation, that representation will be embedded adding a field
+value which holds the custom JSON in addition to the @type
+field. Example (for message [google.protobuf.Duration][]):
+
+	{
+	  "@type": "type.googleapis.com/google.protobuf.Duration",
+	  "value": "1.212s"
+	}
+`,
+			Type: "object",
+			Properties: openapi3.Schemas{
+				"@type": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "",
+						Type:        "string",
+						Format:      "",
+					},
 				},
 			},
 		},

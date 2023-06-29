@@ -1,6 +1,15 @@
 {
   "components": {
     "schemas": {
+      "google.protobuf.Any": {
+        "description": "\nThe JSON representation of an Any value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field @type which contains the type URL. Example:\n\n\tpackage google.profile;\n\tmessage Person {\n\t  string first_name = 1;\n\t  string last_name = 2;\n\t}\n\n\t{\n\t  \"@type\": \"type.googleapis.com/google.profile.Person\",\n\t  \"firstName\": \u003cstring\u003e,\n\t  \"lastName\": \u003cstring\u003e\n\t}\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\nvalue which holds the custom JSON in addition to the @type\nfield. Example (for message [google.protobuf.Duration][]):\n\n\t{\n\t  \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n\t  \"value\": \"1.212s\"\n\t}\n",
+        "properties": {
+          "@type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "payment.v1alpha1.Order": {
         "description": "Order represents a monetary order.",
         "properties": {

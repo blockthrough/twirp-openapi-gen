@@ -4,8 +4,10 @@ deps:
   - remote: buf.build
     owner: acme
     repository: paymentapis
-    commit: 6e230f46113f498392c82d12b1a07b70
+    commit: 9a877cf260e1488d869a31fce3bea26d
+    digest: shake256:4af5b88c9a1d9b36421ad84a2cff211fc74995040188dafc1c8508d36406140e40eb0ab82d21e761961e4a71631d4474e3d0608b987ca3d02d5d19012edff21d
   - remote: buf.build
     owner: googleapis
     repository: googleapis
-    commit: cac7f97f0d3a4c3d9d2004f475c0553c
+    commit: cc916c31859748a68fd229a3c8d7a2e8
+    digest: shake256:469b049d0eb04203d5272062636c078decefc96fec69739159c25d85349c50c34c7706918a8b216c5c27f76939df48452148cff8c5c3ae77fa6ba5c25c1b8bf8

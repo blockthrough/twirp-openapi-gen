@@ -28,6 +28,16 @@
         },
         "type": "object"
       },
+      "payment.v1alpha1.PaymentProvider": {
+        "description": "PaymentProvider represents the supported set\nof payment providers.",
+        "enum": [
+          "PAYMENT_PROVIDER_UNSPECIFIED",
+          "PAYMENT_PROVIDER_STRIPE",
+          "PAYMENT_PROVIDER_PAYPAL",
+          "PAYMENT_PROVIDER_APPLE"
+        ],
+        "type": "string"
+      },
       "pet.v1.DeletePetRequest": {
         "properties": {
           "pet_id": {
@@ -37,6 +47,7 @@
         "type": "object"
       },
       "pet.v1.GetPetRequest": {
+        "description": "GetPetRequest is the request object for GetPet\nThe message accepts a pet id as an input",
         "properties": {
           "pet_id": {
             "type": "string"
@@ -68,30 +79,19 @@
           "name": {
             "type": "string"
           },
+          "payment_provider": {
+            "$ref": "#/components/schemas/payment.v1alpha1.PaymentProvider"
+          },
           "pet_id": {
             "description": "pet_id is an auto-generated id for the pet\nthe id uniquely identifies a pet in the system",
             "type": "string"
           },
           "pet_type": {
-            "enum": [
-              "PET_TYPE_UNSPECIFIED",
-              "PET_TYPE_CAT",
-              "PET_TYPE_DOG",
-              "PET_TYPE_SNAKE",
-              "PET_TYPE_HAMSTER"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/pet.v1.PetType"
           },
           "pet_types": {
             "items": {
-              "enum": [
-                "PET_TYPE_UNSPECIFIED",
-                "PET_TYPE_CAT",
-                "PET_TYPE_DOG",
-                "PET_TYPE_SNAKE",
-                "PET_TYPE_HAMSTER"
-              ],
-              "type": "string"
+              "$ref": "#/components/schemas/pet.v1.PetType"
             },
             "type": "array"
           },
@@ -106,6 +106,17 @@
           }
         },
         "type": "object"
+      },
+      "pet.v1.PetType": {
+        "description": "PetType represents the different types of pets in the pet store.",
+        "enum": [
+          "PET_TYPE_UNSPECIFIED",
+          "PET_TYPE_CAT",
+          "PET_TYPE_DOG",
+          "PET_TYPE_SNAKE",
+          "PET_TYPE_HAMSTER"
+        ],
+        "type": "string"
       },
       "pet.v1.PurchasePetRequest": {
         "properties": {
@@ -127,14 +138,7 @@
             "type": "string"
           },
           "pet_type": {
-            "enum": [
-              "PET_TYPE_UNSPECIFIED",
-              "PET_TYPE_CAT",
-              "PET_TYPE_DOG",
-              "PET_TYPE_SNAKE",
-              "PET_TYPE_HAMSTER"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/pet.v1.PetType"
           }
         },
         "type": "object"

@@ -20,21 +20,11 @@ var (
 func (gen *generator) Handlers() []proto.Handler {
 	return []proto.Handler{
 		proto.WithPackage(gen.Package),
-		proto.WithRPC(gen.RPC),
-		proto.WithMessage(gen.Message),
 		proto.WithImport(gen.Import),
+		proto.WithRPC(gen.RPC),
 		proto.WithEnum(gen.Enum),
+		proto.WithMessage(gen.Message),
 	}
-}
-
-func (gen *generator) Enum(enum *proto.Enum) {
-	logger.logd("Enum handler %q %q", gen.packageName, enum.Name)
-	values := []string{}
-	for _, element := range enum.Elements {
-		enumField := element.(*proto.EnumField)
-		values = append(values, enumField.Name)
-	}
-	gen.enums[gen.packageName+"."+enum.Name] = values
 }
 
 func (gen *generator) Package(pkg *proto.Package) {
@@ -44,6 +34,11 @@ func (gen *generator) Package(pkg *proto.Package) {
 
 func (gen *generator) Import(i *proto.Import) {
 	logger.logd("Import handler %q %q", gen.packageName, i.Filename)
+
+	if _, ok := gen.importedFiles[i.Filename]; ok {
+		return
+	}
+	gen.importedFiles[i.Filename] = struct{}{}
 
 	// Instead of loading and generating the OpenAPI docs for the google proto definitions,
 	// its known types are mapped to OpenAPI types; see aliases.go.
@@ -59,12 +54,19 @@ func (gen *generator) Import(i *proto.Import) {
 
 	oldPackageName := gen.packageName
 
+	// Override the package name for the next round of Walk calls to preserve the types full import path
 	withPackage := func(pkg *proto.Package) {
 		gen.packageName = pkg.Name
 	}
 
 	// additional files walked for messages and imports only
-	proto.Walk(protoFile, proto.WithPackage(withPackage), proto.WithImport(gen.Import), proto.WithMessage(gen.Message))
+	proto.Walk(protoFile,
+		proto.WithPackage(withPackage),
+		proto.WithImport(gen.Import),
+		proto.WithRPC(gen.RPC),
+		proto.WithEnum(gen.Enum),
+		proto.WithMessage(gen.Message),
+	)
 
 	gen.packageName = oldPackageName
 }
@@ -121,6 +123,23 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 	}
 }
 
+func (gen *generator) Enum(enum *proto.Enum) {
+	logger.logd("Enum handler %q %q", gen.packageName, enum.Name)
+	values := []interface{}{}
+	for _, element := range enum.Elements {
+		enumField := element.(*proto.EnumField)
+		values = append(values, enumField.Name)
+	}
+
+	gen.openAPIV3.Components.Schemas[gen.packageName+"."+enum.Name] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: description(enum.Comment),
+			Type:        "string",
+			Enum:        values,
+		},
+	}
+}
+
 func (gen *generator) Message(msg *proto.Message) {
 	logger.logd("Message handler %q %q", gen.packageName, msg.Name)
 
@@ -142,20 +161,20 @@ func (gen *generator) Message(msg *proto.Message) {
 	for _, element := range msg.Elements {
 		switch val := element.(type) {
 		case *proto.Message:
-			logger.logd("proto.Message")
+			//logger.logd("proto.Message")
 			gen.Message(val)
 		case *proto.Comment:
-			logger.logd("proto.Comment")
+			//logger.logd("proto.Comment")
 		case *proto.Oneof:
-			logger.logd("proto.Oneof")
+			//logger.logd("proto.Oneof")
 		case *proto.OneOfField:
-			logger.logd("proto.OneOfField")
+			//logger.logd("proto.OneOfField")
 			gen.addField(schemaProps, val.Field, false)
 		case *proto.MapField:
-			logger.logd("proto.MapField")
+			//logger.logd("proto.MapField")
 			gen.addField(schemaProps, val.Field, false)
 		case *proto.NormalField:
-			logger.logd("proto.NormalField")
+			//logger.logd("proto.NormalField %q %q", val.Field.Type, val.Field.Name)
 			gen.addField(schemaProps, val.Field, val.Repeated)
 		default:
 			logger.logd("unknown field type: %T", element)
@@ -213,36 +232,6 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 				Type:        "array",
 				Format:      fieldFormat,
 				Items:       &fieldSchemaV3,
-			},
-		}
-		return
-	}
-
-	if enumValues, ok := gen.enums[gen.packageName+"."+field.Type]; ok {
-		enumI := []interface{}{}
-		for _, v := range enumValues {
-			enumI = append(enumI, v)
-		}
-		if !repeated {
-			schemaPropsV3[fieldName] = &openapi3.SchemaRef{
-				Value: &openapi3.Schema{
-					Type:        "string",
-					Enum:        enumI,
-					Description: fieldDescription,
-				},
-			}
-			return
-		}
-		schemaPropsV3[fieldName] = &openapi3.SchemaRef{
-			Value: &openapi3.Schema{
-				Description: fieldDescription,
-				Type:        "array",
-				Items: &openapi3.SchemaRef{
-					Value: &openapi3.Schema{
-						Type: "string",
-						Enum: enumI,
-					},
-				},
 			},
 		}
 		return

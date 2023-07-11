@@ -80,7 +80,7 @@ type generator struct {
 	inputFiles  []string
 	packageName string
 
-	enums map[string][]string
+	importedFiles map[string]struct{}
 }
 
 func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
@@ -114,10 +114,10 @@ func NewGenerator(inputFiles []string, options ...Option) (*generator, error) {
 	logger.logd("generating %q doc for %v", conf.format, inputFiles)
 
 	return &generator{
-		inputFiles: inputFiles,
-		openAPIV3:  &openAPIV3,
-		conf:       &conf,
-		enums:      map[string][]string{},
+		inputFiles:    inputFiles,
+		openAPIV3:     &openAPIV3,
+		conf:          &conf,
+		importedFiles: map[string]struct{}{},
 	}, nil
 }
 

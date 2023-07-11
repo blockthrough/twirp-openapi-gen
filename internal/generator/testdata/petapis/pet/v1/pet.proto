@@ -28,6 +28,8 @@ service PetStoreService {
   rpc PurchasePet(PurchasePetRequest) returns (PurchasePetResponse) {}
 }
 
+// GetPetRequest is the request object for GetPet
+// The message accepts a pet id as an input
 message GetPetRequest {
   string pet_id = 1;
 }
@@ -61,6 +63,8 @@ message Pet {
   PetType pet_type = 1;
 
   repeated PetType pet_types = 2;
+
+  payment.v1alpha1.PaymentProvider payment_provider = 22;
 
   // pet_id is an auto-generated id for the pet
   // the id uniquely identifies a pet in the system

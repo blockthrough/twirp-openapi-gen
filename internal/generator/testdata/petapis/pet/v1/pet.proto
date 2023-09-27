@@ -8,6 +8,8 @@ import "payment/v1alpha1/payment.proto";
 import "google/type/datetime.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/struct.proto";
 
 // PetType represents the different types of pets in the pet store.
 enum PetType {
@@ -21,10 +23,12 @@ enum PetType {
 service PetStoreService {
   // GetPet returns details about a pet
   // It accepts a pet id as an input and returns back the matching pet object
+  // req-example: { "pet_id": "123" }
+  // req-example: { "pet_id": "456" }
+  // res-example: { "pet": {"name": "toby"} }
   rpc GetPet(GetPetRequest) returns (GetPetResponse) {}
 
   rpc DeletePet(DeletePetRequest) returns (google.protobuf.Empty) {}
-
   rpc PurchasePet(PurchasePetRequest) returns (PurchasePetResponse) {}
 }
 
@@ -83,6 +87,10 @@ message Pet {
   Vet vet = 7;
   repeated Vet vets = 8;
 
+  google.protobuf.ListValue labels = 101;
+
+  repeated string tags = 102;
+
 // TODO(dm): add support for oneof
 //  oneof test_oneof {
 //    string p1 = 7;
@@ -93,7 +101,3 @@ message Pet {
 //  map<string, Medication> medications = 9;
 //  map<string, int32> vet_visits_by_month = 10;
 }
-
-//message Medication {
-//  string name = 1;
-//}

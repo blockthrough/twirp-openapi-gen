@@ -10,6 +10,32 @@
         },
         "type": "object"
       },
+      "google.protobuf.ListValue": {
+        "description": "\nListValue is a wrapper around a repeated field of values.\nThe JSON representation for ListValue is JSON array.\n",
+        "items": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "bool"
+            },
+            {
+              "type": "array"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "type": "array"
+      },
       "payment.v1alpha1.Order": {
         "description": "Order represents a monetary order.",
         "properties": {
@@ -76,6 +102,9 @@
             },
             "type": "array"
           },
+          "labels": {
+            "$ref": "#/components/schemas/google.protobuf.ListValue"
+          },
           "name": {
             "type": "string"
           },
@@ -92,6 +121,12 @@
           "pet_types": {
             "items": {
               "$ref": "#/components/schemas/pet.v1.PetType"
+            },
+            "type": "array"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
             },
             "type": "array"
           },
@@ -190,11 +225,25 @@
       }
     },
     "/pet.v1.PetStoreService/GetPet": {
-      "description": "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object",
+      "description": "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object\nreq-example: { \"pet_id\": \"123\" }\nreq-example: { \"pet_id\": \"456\" }\nres-example: { \"pet\": {\"name\": \"toby\"} }",
       "post": {
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "0": {
+                  "summary": "example 0",
+                  "value": {
+                    "pet_id": "123"
+                  }
+                },
+                "1": {
+                  "summary": "example 1",
+                  "value": {
+                    "pet_id": "456"
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/pet.v1.GetPetRequest"
               }
@@ -205,6 +254,16 @@
           "200": {
             "content": {
               "application/json": {
+                "examples": {
+                  "0": {
+                    "summary": "example 0",
+                    "value": {
+                      "pet": {
+                        "name": "toby"
+                      }
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/pet.v1.GetPetResponse"
                 }

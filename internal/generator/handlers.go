@@ -1,8 +1,11 @@
 package generator
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/emicklei/proto"
@@ -10,7 +13,8 @@ import (
 )
 
 const (
-	googleAnyType = "google.protobuf.Any"
+	googleAnyType       = "google.protobuf.Any"
+	googleListValueType = "google.protobuf.ListValue"
 )
 
 var (
@@ -73,9 +77,10 @@ func (gen *generator) Import(i *proto.Import) {
 
 func (gen *generator) RPC(rpc *proto.RPC) {
 	logger.logd("RPC handler %q %q %q %q", gen.packageName, rpc.Name, rpc.RequestType, rpc.ReturnsType)
+
 	parent, ok := rpc.Parent.(*proto.Service)
 	if !ok {
-		panic("parent is not proto.service")
+		log.Panicf("parent is not proto.service")
 	}
 	pathName := filepath.Join("/"+gen.conf.pathPrefix+"/", gen.packageName+"."+parent.Name, rpc.Name)
 
@@ -99,6 +104,30 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 		resMediaType = &openapi3.MediaType{
 			Schema: &openapi3.SchemaRef{
 				Ref: fmt.Sprintf("#/components/schemas/%s.%s", gen.packageName, rpc.ReturnsType),
+			},
+		}
+	}
+
+	_, reqExamples, resExamples, err := parseComment(rpc.Comment)
+	if err != nil {
+		// TODO(dm): how can we surface the errors from the parser instead of panicking?
+		log.Panicf("failed to parse comment %s ", err)
+	}
+	reqMediaType.Examples = map[string]*openapi3.ExampleRef{}
+	for i, example := range reqExamples {
+		reqMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
+			Value: &openapi3.Example{
+				Summary: fmt.Sprintf("example %d", i),
+				Value:   example,
+			},
+		}
+	}
+	resMediaType.Examples = map[string]*openapi3.ExampleRef{}
+	for i, example := range resExamples {
+		resMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
+			Value: &openapi3.Example{
+				Summary: fmt.Sprintf("example %d", i),
+				Value:   example,
 			},
 		}
 	}
@@ -145,19 +174,6 @@ func (gen *generator) Message(msg *proto.Message) {
 
 	schemaProps := openapi3.Schemas{}
 
-	// TODO(dm): test OneOf elements
-	//for _, element := range msg.Elements {
-	//	switch val := element.(type) {
-	//	case *proto.Oneof:
-	//		// We're unpacking val.Elements into the field list,
-	//		// which may or may not be correct. The oneof semantics
-	//		// likely bring in edge-cases.
-	//		allFields = append(allFields, val.Elements...)
-	//	default:
-	//		// No need to unpack for *proto.NormalField,...
-	//	}
-	//}
-
 	for _, element := range msg.Elements {
 		switch val := element.(type) {
 		case *proto.Message:
@@ -195,7 +211,7 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 	fieldName := field.Name
 	fieldType := field.Type
 	fieldFormat := field.Type
-	// map proto types to open api
+	// map proto types to openapi
 	if p, ok := typeAliases[fieldType]; ok {
 		fieldType = p.Type
 		fieldFormat = p.Format
@@ -205,15 +221,9 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 		fieldFormat = ""
 	}
 
-	// generate the schema for google well known complex types: https://protobuf.dev/reference/protobuf/google.protobuf/#index
 	switch fieldType {
-	case "google.protobuf.Any":
-		gen.addGoogleAnySchema()
-	}
-
 	// Build the schema for native types that don't need to reference other schemas
 	// https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#data-types
-	switch fieldType {
 	case "boolean", "integer", "number", "string", "object":
 		fieldSchemaV3 := openapi3.SchemaRef{
 			Value: &openapi3.Schema{
@@ -235,6 +245,16 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 			},
 		}
 		return
+
+	// generate the schema for google well known complex types: https://protobuf.dev/reference/protobuf/google.protobuf/#index
+	case "google.protobuf.Any":
+		logger.logd("Any - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleAnySchema()
+	case "google.protobuf.ListValue":
+		logger.logd("ListValue - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleListValueSchema()
+	default:
+		logger.logd("DEFAULT %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 	}
 
 	// prefix custom types with the package name
@@ -268,6 +288,7 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 	}
 }
 
+// addGoogleAnySchema adds a schema item for the google.protobuf.Any type.
 func (gen *generator) addGoogleAnySchema() {
 	if _, ok := gen.openAPIV3.Components.Schemas[googleAnyType]; ok {
 		return
@@ -315,6 +336,58 @@ field. Example (for message [google.protobuf.Duration][]):
 	}
 }
 
+// addGoogleAnySchema adds a schema item for the google.protobuf.ListValue type.
+func (gen *generator) addGoogleListValueSchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleListValueType]; ok {
+		return
+	}
+	gen.openAPIV3.Components.Schemas[googleListValueType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+ListValue is a wrapper around a repeated field of values.
+The JSON representation for ListValue is JSON array.
+`,
+			Type: "array",
+			Items: &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					OneOf: openapi3.SchemaRefs{
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "string",
+							},
+						},
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "number",
+							},
+						},
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "integer",
+							},
+						},
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "bool",
+							},
+						},
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "array",
+							},
+						},
+						&openapi3.SchemaRef{
+							Value: &openapi3.Schema{
+								Type: "object",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func description(comment *proto.Comment) string {
 	if comment == nil {
 		return ""
@@ -327,4 +400,36 @@ func description(comment *proto.Comment) string {
 		}
 	}
 	return strings.Join(result, "\n")
+}
+
+// parseComment parses the comment for an RPC method and returns the description, request examples, and response examples.
+// it looks for the labels req-example: and res-example: to extract the JSON payload samples.
+func parseComment(comment *proto.Comment) (string, []map[string]interface{}, []map[string]interface{}, error) {
+	if comment == nil {
+		return "", nil, nil, nil
+	}
+	reqExamples := []map[string]interface{}{}
+	respExamples := []map[string]interface{}{}
+	message := ""
+	for _, line := range comment.Lines {
+		line = strings.TrimLeft(line, " ")
+		if strings.HasPrefix(line, "req-example:") {
+			parts := strings.Split(line, "req-example:")
+			example := map[string]interface{}{}
+			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
+				return "", nil, nil, err
+			}
+			reqExamples = append(reqExamples, example)
+		} else if strings.HasPrefix(line, "res-example:") {
+			parts := strings.Split(line, "res-example:")
+			example := map[string]interface{}{}
+			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
+				return "", nil, nil, err
+			}
+			respExamples = append(respExamples, example)
+		} else {
+			message = fmt.Sprintf("%s\n%s", message, line)
+		}
+	}
+	return message, reqExamples, respExamples, nil
 }

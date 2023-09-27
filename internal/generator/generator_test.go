@@ -1,6 +1,8 @@
 package generator
 
 import (
+	"flag"
+	"strings"
 	"testing"
 )
 
@@ -27,14 +29,20 @@ type ProtoField struct {
 	itemsType string
 }
 
+var (
+	versbose = flag.Bool("verbose", false, "print debug logs to the console")
+)
+
 func TestGenerator(t *testing.T) {
+	flag.Parse()
+
 	opts := []Option{
 		ProtoPaths([]string{"./testdata/paymentapis", "./testdata/petapis"}),
 		Servers([]string{"https://example.com"}),
 		Title("Test"),
 		DocVersion("0.1"),
 		Format("json"),
-		Verbose(true),
+		Verbose(*versbose),
 	}
 	gen, err := NewGenerator([]string{"./testdata/petapis/pet/v1/pet.proto"}, opts...)
 	if err != nil {
@@ -56,7 +64,7 @@ func TestGenerator(t *testing.T) {
 			name:   "GetPet",
 			input:  "GetPetRequest",
 			output: "GetPetResponse",
-			desc:   "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object",
+			desc:   "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object\nreq-example: { \"pet_id\": \"123\" }\nreq-example: { \"pet_id\": \"456\" }\nres-example: { \"pet\": {\"name\": \"toby\"} }",
 		},
 	}
 	messages := []ProtoMessage{
@@ -75,13 +83,24 @@ func TestGenerator(t *testing.T) {
 				{
 					name:      "pet_type",
 					fieldType: "object",
-					// TODO(dm): check if the enum values were added to the schema
-					ref: "#/components/schemas/pet.v1.PetType",
+					ref:       "#/components/schemas/pet.v1.PetType",
+					enums: []string{
+						"PET_TYPE_UNSPECIFIED",
+						"PET_TYPE_CAT",
+						"PET_TYPE_DOG",
+						"PET_TYPE_SNAKE",
+						"PET_TYPE_HAMSTER",
+					},
 				},
 				{
 					name:      "pet_types",
 					fieldType: "array",
-					itemsType: "#/components/schemas/pet.v1.PetType",
+					itemsRef:  "#/components/schemas/pet.v1.PetType",
+				},
+				{
+					name:      "tags",
+					fieldType: "array",
+					itemsType: "string",
 				},
 				{
 					name:      "pet_id",
@@ -238,32 +257,46 @@ func TestGenerator(t *testing.T) {
 					t.Errorf("%s: %q expected reference %q but got %q", schemaName, messageField.name, messageField.ref, propertyRef.Ref)
 				}
 
-				// TODO(dm): update test to deference an enum schema instead of an array
-				//enums := map[string]struct{}{}
-				//if property.Type == "array" {
-				//	if property.Items == nil || property.Items.Value == nil {
-				//		t.Errorf("%s: missing property enum array items", schemaName)
-				//	}
-				//	for _, enum := range property.Items.Value.Enum {
-				//		enums[enum.(string)] = struct{}{}
-				//	}
-				//
-				//	if property.Items.Value.Type != messageField.itemsType {
-				//		t.Errorf("%s: expected %s items type %q but got %q", schemaName, messageField.name, messageField.itemsType, property.Items.Value.Type)
-				//	}
-				//	if property.Items.Ref != messageField.itemsRef {
-				//		t.Errorf("%s: expected %s items ref %q but got %q", schemaName, messageField.name, messageField.itemsRef, property.Items.Ref)
-				//	}
-				//}
-				//
-				//for _, enum := range property.Enum {
-				//	enums[enum.(string)] = struct{}{}
-				//}
-				//for _, enum := range messageField.enums {
-				//	if _, ok := enums[enum]; !ok {
-				//		t.Errorf("%s: %s missing enum %q", schemaName, messageField.name, enum)
-				//	}
-				//}
+				// check the reference schema
+				if messageField.ref != "" {
+					refParts := strings.Split(messageField.ref, "/")
+					// the reference schema has the format of #/components/schemas/<type> so we need to get the last part
+					schemaRef, ok := openAPI.Components.Schemas[refParts[len(refParts)-1]]
+					if !ok {
+						t.Errorf("%s: %q expected reference schema %q but got nil", schemaName, messageField.name, messageField.ref)
+					} else {
+						// check if the schema reference has the expected enum values
+						if len(messageField.enums) > 0 {
+							if schemaRef.Value.Enum == nil {
+								t.Errorf("%s: %q expected reference schema enums %q but got nil", schemaName, messageField.name, messageField.ref)
+							} else {
+								enums := map[string]struct{}{}
+								for _, e := range schemaRef.Value.Enum {
+									enums[e.(string)] = struct{}{}
+								}
+								for _, e := range messageField.enums {
+									if _, ok := enums[e]; !ok {
+										t.Errorf("%s: %q expected reference schema enum %q to have %q but got nil", schemaName, messageField.name, messageField.ref, e)
+									}
+								}
+							}
+						}
+					}
+				}
+
+				if property.Type == "array" {
+					if property.Items == nil || property.Items.Value == nil {
+						t.Errorf("%s: missing property enum array items", schemaName)
+					}
+					// only check the array items type if it's not a reference
+					if messageField.itemsRef == "" && (property.Items.Value.Type != messageField.itemsType) {
+						t.Errorf("%s: expected %s items type %q but got %q", schemaName, messageField.name, messageField.itemsType, property.Items.Value.Type)
+					}
+					// check the array items reference schema
+					if property.Items.Ref != messageField.itemsRef {
+						t.Errorf("%s: expected %s items ref %q but got %q", schemaName, messageField.name, messageField.itemsRef, property.Items.Ref)
+					}
+				}
 			}
 		}
 	})

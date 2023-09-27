@@ -1,7 +1,7 @@
 # twirp-openapi-gen
 Generate Open API V3 documentation for Twirp services
 
-[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://godoc.org/github.com/diogogmt/twirp-openapi-gen)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge)](https://godoc.org/github.com/blockthrough/twirp-openapi-gen)
 
 
 ## Installation
@@ -18,25 +18,49 @@ $  go install github.com/diogogmt/twirp-openapi-gen/cmd/twirp-openapi-gen@latest
 
 ## Proto OpenAPI Mappings
 
-| Proto                            | OpenAPI                               |
-|----------------------------------|---------------------------------------|
-| **RPC**                          | Path                                  |
-| **Package + Service + RPC Name** | Path.Key                              |
-| **RPC Name**                     | Path.Summary                          |
-| **RPC Input**                    | Path.RequestBody                      |
-| **RPC Output**                   | Path.Response                         |
-| **RPC Comment**                  | Path.Description                      |
-| **Message**                      | Component.Schema                      |
-| **Message Comment**              | Component.Schema.Description          |
-| **Message Field**                | Component.Schema.Property             |
-| **Message Field Comment**        | Component.Schema.Property.Description |
-| **Enum**                         | Component.Schema.Property.Enum        |
+| Proto                        | OpenAPI                               |
+|------------------------------|---------------------------------------|
+| **RPC**                      | Path                                  |
+| **Package.Service.RPC Name** | Path.Key                              |
+| **RPC Name**                 | Path.Summary                          |
+| **RPC Input**                | Path.RequestBody                      |
+| **RPC Output**               | Path.Response                         |
+| **RPC Comment**              | Path.Description                      |
+| **Message**                  | Component.Schema                      |
+| **Message Comment**          | Component.Schema.Description          |
+| **Message Field**            | Component.Schema.Property             |
+| **Message Field Comment**    | Component.Schema.Property.Description |
+| **Enum**                     | Component.Schema.Property.Enum        |
+
+
+### Google Protobuf
+
+The generator does a best effort attempt to map google.protobuf to OpenAPI types. The following table shows the mappings:
+
+| Google Protobuf | OpenAPI Type & Format |
+|-----------------|-----------------------|
+| **Timestamp**   | string & date-time    |
+| **DateTime**    | string & date-time    |
+| **Duration**    | string                |
+| **StringValue** | string                |
+| **BytesValue**  | string & byte         |
+| **Int32Value**  | integer & int32       |
+| **UInt32Value** | integer & uint32      |
+| **Int64Value**  | string & int64        |
+| **UInt64Value** | string & uint64       |
+| **FloatValue**  | number & float        |
+| **DoubleValue** | number & double       |
+| **BoolValue**   | boolean               |
+| **Empty**       | -                     |
+| **Any**         | object                |
+| **ListValue**   | arrray                |
 
 
 ### Notes
 * The requestBody property of the path post operation only has one content-type of application/json, and its schema always references the RPC input message.
 * Comments can be added above an RPC, message, or field resources. Inline comments are not supported.
 * Path items only have one response with a 200 code using the schema of the message returned by the RPC method.
+* All imports are resolved and their proto messages are added to the schema bucket. Only google/* proto imports are skipped.
 
 
 ## Usage
@@ -67,6 +91,13 @@ Usage of twirp-openapi-gen:
 ### Examples
 
 ```bash
+❯ twirp-openapi-gen \
+  -in ./api.proto \
+  -out ./api.json \
+  -proto-path /Users/myuser/proto \
+  -servers https://myapi.example.com \
+  -doc-version 1.0 \
+  -title "My API"
 ```
 
 ## Contributing

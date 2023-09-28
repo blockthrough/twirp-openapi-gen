@@ -30,6 +30,18 @@ gen:
 	buf generate ./internal/generator/testdata/paymentapis --template ./internal/generator/testdata/paymentapis/buf.gen.yaml && \
  	buf generate ./internal/generator/testdata/petapis --template ./internal/generator/testdata/petapis/buf.gen.yaml
 
+## pet-api: generate pet api openapi json doc
+pet-api:
+  twirp-openapi-gen \
+    -in ./internal/generator/testdata/petapis/pet/v1/pet.proto \
+    -out ./internal/generator/testdata/pet-api-doc.json \
+    -proto-path "$(shell realpath ./internal/generator/testdata/paymentapis/)" \
+    -proto-path "$(shell realpath ./internal/generator/testdata/petapis/)" \
+    -servers https://petapi.example.com \
+    -path-prefix "" \
+    -doc-version 1.0 \
+    -title "Pet API"
+
 ## tools: download tools; buf, protoc-gen-go and protoc-gen-twirp
 tools:
 	go install github.com/bufbuild/buf/cmd/buf@v$(BUF_VERSION)

@@ -90,14 +90,18 @@ Usage of twirp-openapi-gen:
 
 ### Examples
 
+Generate OpenAPI V3 JSON document for the Twirp PetStore service:
+
 ```bash
 ❯ twirp-openapi-gen \
-  -in ./api.proto \
-  -out ./api.json \
-  -proto-path /Users/myuser/proto \
-  -servers https://myapi.example.com \
-  -doc-version 1.0 \
-  -title "My API"
+    -in ./internal/generator/testdata/petapis/pet/v1/pet.proto \
+    -out ./internal/generator/testdata/pet-api-doc.json \
+    -proto-path "$(shell realpath ./internal/generator/testdata/paymentapis/)" \
+    -proto-path "$(shell realpath ./internal/generator/testdata/petapis/)" \
+    -servers https://petapi.example.com \
+    -path-prefix "" \
+    -doc-version 1.0 \
+    -title "Pet API"
 ```
 
 ## Contributing

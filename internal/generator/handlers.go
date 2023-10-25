@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/emicklei/proto"
@@ -112,31 +111,30 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 		}
 	}
 
-	_, reqExamples, resExamples, err := parseComment(rpc.Comment)
+	// NOTE: Redocly does not read the "examples" (plural) field, only the "example" (singular) one.
+	commentMsg, reqExamples, resExamples, err := parseComment(rpc.Comment)
 	if err != nil {
 		// TODO(dm): how can we surface the errors from the parser instead of panicking?
 		log.Panicf("failed to parse comment %s ", err)
 	}
-	reqMediaType.Examples = map[string]*openapi3.ExampleRef{}
-	for i, example := range reqExamples {
-		reqMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
-			Value: &openapi3.Example{
-				Summary: fmt.Sprintf("example %d", i),
-				Value:   example,
-			},
+
+	if len(reqExamples) > 0 {
+		exampleObj := make(map[string]interface{})
+		for i, example := range reqExamples {
+			exampleObj[fmt.Sprintf("example %d", i)] = example
 		}
+		reqMediaType.Example = exampleObj
 	}
-	resMediaType.Examples = map[string]*openapi3.ExampleRef{}
-	for i, example := range resExamples {
-		resMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
-			Value: &openapi3.Example{
-				Summary: fmt.Sprintf("example %d", i),
-				Value:   example,
-			},
+	if len(resExamples) > 0 {
+		exampleObj := make(map[string]interface{})
+		for i, example := range resExamples {
+			exampleObj[fmt.Sprintf("example %d", i)] = example
 		}
+		resMediaType.Example = exampleObj
 	}
+
 	gen.openAPIV3.Paths[pathName] = &openapi3.PathItem{
-		Description: description(rpc.Comment),
+		Description: commentMsg,
 		Post: &openapi3.Operation{
 			Summary: rpc.Name,
 			RequestBody: &openapi3.RequestBodyRef{
@@ -523,19 +521,19 @@ func parseComment(comment *proto.Comment) (string, []map[string]interface{}, []m
 	respExamples := []map[string]interface{}{}
 	message := ""
 	for _, line := range comment.Lines {
-		line = strings.TrimLeft(line, " ")
+		line = strings.TrimLeft(line, " \t")
 		if strings.HasPrefix(line, "req-example:") {
 			parts := strings.Split(line, "req-example:")
 			example := map[string]interface{}{}
 			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
-				return "", nil, nil, err
+				return "", nil, nil, fmt.Errorf("failed to parse req-example %q: %v", parts[1], err)
 			}
 			reqExamples = append(reqExamples, example)
 		} else if strings.HasPrefix(line, "res-example:") {
 			parts := strings.Split(line, "res-example:")
 			example := map[string]interface{}{}
 			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
-				return "", nil, nil, err
+				return "", nil, nil, fmt.Errorf("failed to parse res-example %q: %v", parts[1], err)
 			}
 			respExamples = append(respExamples, example)
 		} else {

@@ -245,23 +245,17 @@
       }
     },
     "/pet.v1.PetStoreService/GetPet": {
-      "description": "GetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object\nreq-example: { \"pet_id\": \"123\" }\nreq-example: { \"pet_id\": \"456\" }\nres-example: { \"pet\": {\"name\": \"toby\"} }",
       "post": {
+        "description": "\nGetPet returns details about a pet\nIt accepts a pet id as an input and returns back the matching pet object",
         "requestBody": {
           "content": {
             "application/json": {
-              "examples": {
-                "0": {
-                  "summary": "example 0",
-                  "value": {
-                    "pet_id": "123"
-                  }
+              "example": {
+                "example 0": {
+                  "pet_id": "123"
                 },
-                "1": {
-                  "summary": "example 1",
-                  "value": {
-                    "pet_id": "456"
-                  }
+                "example 1": {
+                  "pet_id": "456"
                 }
               },
               "schema": {
@@ -274,13 +268,10 @@
           "200": {
             "content": {
               "application/json": {
-                "examples": {
-                  "0": {
-                    "summary": "example 0",
-                    "value": {
-                      "pet": {
-                        "name": "toby"
-                      }
+                "example": {
+                  "example 0": {
+                    "pet": {
+                      "name": "toby"
                     }
                   }
                 },

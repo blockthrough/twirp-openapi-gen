@@ -134,9 +134,9 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 	}
 
 	gen.openAPIV3.Paths[pathName] = &openapi3.PathItem{
-		Description: commentMsg,
 		Post: &openapi3.Operation{
-			Summary: rpc.Name,
+			Description: commentMsg,
+			Summary:     rpc.Name,
 			RequestBody: &openapi3.RequestBodyRef{
 				Value: &openapi3.RequestBody{
 					Content: openapi3.Content{"application/json": reqMediaType},

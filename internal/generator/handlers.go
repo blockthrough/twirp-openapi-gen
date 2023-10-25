@@ -17,6 +17,8 @@ const (
 	googleListValueType = "google.protobuf.ListValue"
 	googleStructType    = "google.protobuf.Struct"
 	googleValueType     = "google.protobuf.Value"
+
+	googleMoneyType = "google.type.Money"
 )
 
 var (
@@ -262,6 +264,9 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 	case googleValueType:
 		logger.logd("Value - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 		gen.addGoogleValueSchema()
+	case googleMoneyType:
+		logger.logd("Money - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleMoneySchema()
 	default:
 		logger.logd("DEFAULT %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 	}
@@ -377,7 +382,7 @@ The JSON representation for ListValue is JSON array.
 						},
 						&openapi3.SchemaRef{
 							Value: &openapi3.Schema{
-								Type: "bool",
+								Type: "boolean",
 							},
 						},
 						&openapi3.SchemaRef{
@@ -451,9 +456,44 @@ The JSON representation for Value is JSON value.
 				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
 				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "number"}},
 				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
-				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "bool"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "boolean"}},
 				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.Struct"},
 				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.ListValue"},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleMoneySchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleMoneyType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleMoneyType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `Represents an amount of money with its currency type`,
+			Type:        "object",
+			Properties: openapi3.Schemas{
+				"currency_code": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "The 3-letter currency code defined in ISO 4217.",
+						Type:        "string",
+					},
+				},
+				"units": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "The whole units of the amount.\nFor example if `currencyCode` is `\"USD\"`, then 1 unit is one US dollar.",
+						Type:        "integer",
+						Format:      "int64",
+					},
+				},
+				"nanos": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "Number of nano (10^-9) units of the amount.\nThe value must be between -999,999,999 and +999,999,999 inclusive.\nIf `units` is positive, `nanos` must be positive or zero.\nIf `units` is zero, `nanos` can be positive, zero, or negative.\nIf `units` is negative, `nanos` must be negative or zero.\nFor example $-1.75 is represented as `units`=-1 and `nanos`=-750,000,000.",
+						Type:        "integer",
+						Format:      "int32",
+					},
+				},
 			},
 		},
 	}

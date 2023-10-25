@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pet.v1;
 
-option go_package = "github.com/diogogmt/twirp-openapi-gen/internal/generator/testdata/gen/go/pet/v1";
+option go_package = "github.com/blockthrough/twirp-openapi-gen/internal/generator/testdata/gen/go/pet/v1";
 
 import "payment/v1alpha1/payment.proto";
 import "google/type/datetime.proto";

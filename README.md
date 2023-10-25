@@ -8,12 +8,12 @@ Generate Open API V3 documentation for Twirp services
 
 #### Binary
 
-For installation instructions from binaries please visit the [Releases Page](https://diogogmt/twirp-openapi-gen/releases).
+For installation instructions from binaries please visit the [Releases Page](https://blockthrough/twirp-openapi-gen/releases).
 
 #### Go
 
-```bash
-$  go install github.com/diogogmt/twirp-openapi-gen/cmd/twirp-openapi-gen@latest
+```sh
+$  go install github.com/blockthrough/twirp-openapi-gen/cmd/twirp-openapi-gen@latest
 ```
 
 ## Proto OpenAPI Mappings

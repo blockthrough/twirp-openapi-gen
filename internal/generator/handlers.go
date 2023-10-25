@@ -15,6 +15,8 @@ import (
 const (
 	googleAnyType       = "google.protobuf.Any"
 	googleListValueType = "google.protobuf.ListValue"
+	googleStructType    = "google.protobuf.Struct"
+	googleValueType     = "google.protobuf.Value"
 )
 
 var (
@@ -247,12 +249,19 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 		return
 
 	// generate the schema for google well known complex types: https://protobuf.dev/reference/protobuf/google.protobuf/#index
-	case "google.protobuf.Any":
+	case googleAnyType:
 		logger.logd("Any - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 		gen.addGoogleAnySchema()
-	case "google.protobuf.ListValue":
+	case googleListValueType:
 		logger.logd("ListValue - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 		gen.addGoogleListValueSchema()
+	case googleStructType:
+		logger.logd("Struct - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleValueSchema() // struct depends on value
+		gen.addGoogleStructSchema()
+	case googleValueType:
+		logger.logd("Value - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleValueSchema()
 	default:
 		logger.logd("DEFAULT %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 	}
@@ -383,6 +392,68 @@ The JSON representation for ListValue is JSON array.
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleStructSchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleStructType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleStructType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+Struct represents a structured data value, consisting of fields
+which map to dynamically typed values. In some languages, 
+Struct might be supported by a native representation. For example,
+in scripting languages like JS a struct is represented as
+an object. The details of that representation are described
+together with the proto support for the language.
+
+The JSON representation for Struct is JSON object.
+`,
+			Type: "object",
+			Properties: openapi3.Schemas{
+				"fields": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "Unordered map of dynamically typed values.",
+						Type:        "object",
+						AdditionalProperties: openapi3.AdditionalProperties{
+							Schema: &openapi3.SchemaRef{
+								Ref: "#/components/schemas/google.protobuf.Value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleValueSchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleValueType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleValueType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+Value represents a dynamically typed value which can be either
+null, a number, a string, a boolean, a recursive struct value, or a
+list of values. A producer of value is expected to set one of that
+variants, absence of any variant indicates an error.
+				
+The JSON representation for Value is JSON value.
+`,
+			OneOf: openapi3.SchemaRefs{
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "number"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "bool"}},
+				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.Struct"},
+				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.ListValue"},
 			},
 		},
 	}

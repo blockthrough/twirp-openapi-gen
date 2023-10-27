@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/emicklei/proto"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -521,7 +522,7 @@ func parseComment(comment *proto.Comment) (string, []map[string]interface{}, []m
 	respExamples := []map[string]interface{}{}
 	message := ""
 	for _, line := range comment.Lines {
-		line = strings.TrimLeft(line, " \t")
+		line = strings.TrimLeftFunc(line, unicode.IsSpace)
 		if strings.HasPrefix(line, "req-example:") {
 			parts := strings.Split(line, "req-example:")
 			example := map[string]interface{}{}

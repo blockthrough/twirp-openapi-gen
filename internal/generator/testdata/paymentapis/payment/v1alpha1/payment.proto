@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package payment.v1alpha1;
 
-option go_package = "github.com/diogogmt/twirp-openapi-gen/internal/generator/testdata/gen/go/payment/v1alpha1";
+option go_package = "github.com/blockthrough/twirp-openapi-gen/internal/generator/testdata/gen/go/payment/v1alpha1";
 
 import "google/type/money.proto";
 

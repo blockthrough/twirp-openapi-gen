@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/emicklei/proto"
 	"github.com/getkin/kin-openapi/openapi3"
@@ -15,6 +15,10 @@ import (
 const (
 	googleAnyType       = "google.protobuf.Any"
 	googleListValueType = "google.protobuf.ListValue"
+	googleStructType    = "google.protobuf.Struct"
+	googleValueType     = "google.protobuf.Value"
+
+	googleMoneyType = "google.type.Money"
 )
 
 var (
@@ -108,33 +112,32 @@ func (gen *generator) RPC(rpc *proto.RPC) {
 		}
 	}
 
-	_, reqExamples, resExamples, err := parseComment(rpc.Comment)
+	// NOTE: Redocly does not read the "examples" (plural) field, only the "example" (singular) one.
+	commentMsg, reqExamples, resExamples, err := parseComment(rpc.Comment)
 	if err != nil {
 		// TODO(dm): how can we surface the errors from the parser instead of panicking?
 		log.Panicf("failed to parse comment %s ", err)
 	}
-	reqMediaType.Examples = map[string]*openapi3.ExampleRef{}
-	for i, example := range reqExamples {
-		reqMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
-			Value: &openapi3.Example{
-				Summary: fmt.Sprintf("example %d", i),
-				Value:   example,
-			},
+
+	if len(reqExamples) > 0 {
+		exampleObj := make(map[string]interface{})
+		for i, example := range reqExamples {
+			exampleObj[fmt.Sprintf("example %d", i)] = example
 		}
+		reqMediaType.Example = exampleObj
 	}
-	resMediaType.Examples = map[string]*openapi3.ExampleRef{}
-	for i, example := range resExamples {
-		resMediaType.Examples[strconv.FormatInt(int64(i), 10)] = &openapi3.ExampleRef{
-			Value: &openapi3.Example{
-				Summary: fmt.Sprintf("example %d", i),
-				Value:   example,
-			},
+	if len(resExamples) > 0 {
+		exampleObj := make(map[string]interface{})
+		for i, example := range resExamples {
+			exampleObj[fmt.Sprintf("example %d", i)] = example
 		}
+		resMediaType.Example = exampleObj
 	}
+
 	gen.openAPIV3.Paths[pathName] = &openapi3.PathItem{
-		Description: description(rpc.Comment),
 		Post: &openapi3.Operation{
-			Summary: rpc.Name,
+			Description: commentMsg,
+			Summary:     rpc.Name,
 			RequestBody: &openapi3.RequestBodyRef{
 				Value: &openapi3.RequestBody{
 					Content: openapi3.Content{"application/json": reqMediaType},
@@ -247,12 +250,22 @@ func (gen *generator) addField(schemaPropsV3 openapi3.Schemas, field *proto.Fiel
 		return
 
 	// generate the schema for google well known complex types: https://protobuf.dev/reference/protobuf/google.protobuf/#index
-	case "google.protobuf.Any":
+	case googleAnyType:
 		logger.logd("Any - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 		gen.addGoogleAnySchema()
-	case "google.protobuf.ListValue":
+	case googleListValueType:
 		logger.logd("ListValue - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 		gen.addGoogleListValueSchema()
+	case googleStructType:
+		logger.logd("Struct - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleValueSchema() // struct depends on value
+		gen.addGoogleStructSchema()
+	case googleValueType:
+		logger.logd("Value - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleValueSchema()
+	case googleMoneyType:
+		logger.logd("Money - %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
+		gen.addGoogleMoneySchema()
 	default:
 		logger.logd("DEFAULT %s type:%q, format:%q", fieldName, fieldType, fieldFormat)
 	}
@@ -368,7 +381,7 @@ The JSON representation for ListValue is JSON array.
 						},
 						&openapi3.SchemaRef{
 							Value: &openapi3.Schema{
-								Type: "bool",
+								Type: "boolean",
 							},
 						},
 						&openapi3.SchemaRef{
@@ -381,6 +394,103 @@ The JSON representation for ListValue is JSON array.
 								Type: "object",
 							},
 						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleStructSchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleStructType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleStructType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+Struct represents a structured data value, consisting of fields
+which map to dynamically typed values. In some languages, 
+Struct might be supported by a native representation. For example,
+in scripting languages like JS a struct is represented as
+an object. The details of that representation are described
+together with the proto support for the language.
+
+The JSON representation for Struct is JSON object.
+`,
+			Type: "object",
+			Properties: openapi3.Schemas{
+				"fields": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "Unordered map of dynamically typed values.",
+						Type:        "object",
+						AdditionalProperties: openapi3.AdditionalProperties{
+							Schema: &openapi3.SchemaRef{
+								Ref: "#/components/schemas/google.protobuf.Value",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleValueSchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleValueType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleValueType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `
+Value represents a dynamically typed value which can be either
+null, a number, a string, a boolean, a recursive struct value, or a
+list of values. A producer of value is expected to set one of that
+variants, absence of any variant indicates an error.
+				
+The JSON representation for Value is JSON value.
+`,
+			OneOf: openapi3.SchemaRefs{
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "number"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "integer"}},
+				&openapi3.SchemaRef{Value: &openapi3.Schema{Type: "boolean"}},
+				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.Struct"},
+				&openapi3.SchemaRef{Ref: "#/components/schemas/google.protobuf.ListValue"},
+			},
+		},
+	}
+}
+
+func (gen *generator) addGoogleMoneySchema() {
+	if _, ok := gen.openAPIV3.Components.Schemas[googleMoneyType]; ok {
+		return
+	}
+
+	gen.openAPIV3.Components.Schemas[googleMoneyType] = &openapi3.SchemaRef{
+		Value: &openapi3.Schema{
+			Description: `Represents an amount of money with its currency type`,
+			Type:        "object",
+			Properties: openapi3.Schemas{
+				"currency_code": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "The 3-letter currency code defined in ISO 4217.",
+						Type:        "string",
+					},
+				},
+				"units": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "The whole units of the amount.\nFor example if `currencyCode` is `\"USD\"`, then 1 unit is one US dollar.",
+						Type:        "integer",
+						Format:      "int64",
+					},
+				},
+				"nanos": &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Description: "Number of nano (10^-9) units of the amount.\nThe value must be between -999,999,999 and +999,999,999 inclusive.\nIf `units` is positive, `nanos` must be positive or zero.\nIf `units` is zero, `nanos` can be positive, zero, or negative.\nIf `units` is negative, `nanos` must be negative or zero.\nFor example $-1.75 is represented as `units`=-1 and `nanos`=-750,000,000.",
+						Type:        "integer",
+						Format:      "int32",
 					},
 				},
 			},
@@ -412,19 +522,19 @@ func parseComment(comment *proto.Comment) (string, []map[string]interface{}, []m
 	respExamples := []map[string]interface{}{}
 	message := ""
 	for _, line := range comment.Lines {
-		line = strings.TrimLeft(line, " ")
+		line = strings.TrimLeftFunc(line, unicode.IsSpace)
 		if strings.HasPrefix(line, "req-example:") {
 			parts := strings.Split(line, "req-example:")
 			example := map[string]interface{}{}
 			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
-				return "", nil, nil, err
+				return "", nil, nil, fmt.Errorf("failed to parse req-example %q: %v", parts[1], err)
 			}
 			reqExamples = append(reqExamples, example)
 		} else if strings.HasPrefix(line, "res-example:") {
 			parts := strings.Split(line, "res-example:")
 			example := map[string]interface{}{}
 			if err := json.Unmarshal([]byte(parts[1]), &example); err != nil {
-				return "", nil, nil, err
+				return "", nil, nil, fmt.Errorf("failed to parse res-example %q: %v", parts[1], err)
 			}
 			respExamples = append(respExamples, example)
 		} else {

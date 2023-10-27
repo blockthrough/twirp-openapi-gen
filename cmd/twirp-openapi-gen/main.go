@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/diogogmt/twirp-openapi-gen/internal/generator"
+	"github.com/blockthrough/twirp-openapi-gen/internal/generator"
 )
 
 type arrayFlags []string

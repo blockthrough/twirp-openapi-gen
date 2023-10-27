@@ -8,6 +8,7 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/getkin/kin-openapi/openapi3"
+	"gopkg.in/yaml.v3"
 )
 
 var logger Lg
@@ -153,7 +154,7 @@ func (gen *generator) Save(filename string) error {
 	case "json":
 		by, err = gen.JSON()
 	case "yaml", "yml":
-		return fmt.Errorf("%q format not supported", gen.conf.format)
+		by, err = gen.YAML()
 	default:
 		return fmt.Errorf("missing format")
 	}
@@ -166,6 +167,10 @@ func (gen *generator) Save(filename string) error {
 
 func (gen *generator) JSON() ([]byte, error) {
 	return json.MarshalIndent(gen.openAPIV3, "", "  ")
+}
+
+func (gen *generator) YAML() ([]byte, error) {
+	return yaml.Marshal(gen.openAPIV3)
 }
 
 func readProtoFile(filename string, protoPaths []string) (*proto.Proto, error) {

@@ -1,0 +1,244 @@
+openapi: 3.0.0
+components:
+    schemas:
+        google.protobuf.Any:
+            type: object
+            description: |4
+                The JSON representation of an Any value uses the regular
+                representation of the deserialized, embedded message, with an
+                additional field @type which contains the type URL. Example:
+
+                	package google.profile;
+                	message Person {
+                	  string first_name = 1;
+                	  string last_name = 2;
+                	}
+
+                	{
+                	  "@type": "type.googleapis.com/google.profile.Person",
+                	  "firstName": <string>,
+                	  "lastName": <string>
+                	}
+
+                If the embedded message type is well-known and has a custom JSON
+                representation, that representation will be embedded adding a field
+                value which holds the custom JSON in addition to the @type
+                field. Example (for message [google.protobuf.Duration][]):
+
+                	{
+                	  "@type": "type.googleapis.com/google.protobuf.Duration",
+                	  "value": "1.212s"
+                	}
+            properties:
+                '@type':
+                    type: string
+        google.protobuf.ListValue:
+            type: array
+            description: |4
+                ListValue is a wrapper around a repeated field of values.
+                The JSON representation for ListValue is JSON array.
+            items:
+                oneOf:
+                    - type: string
+                    - type: number
+                    - type: integer
+                    - type: boolean
+                    - type: array
+                    - type: object
+        google.type.Money:
+            type: object
+            description: Represents an amount of money with its currency type
+            properties:
+                currency_code:
+                    type: string
+                    description: The 3-letter currency code defined in ISO 4217.
+                nanos:
+                    type: integer
+                    format: int32
+                    description: |-
+                        Number of nano (10^-9) units of the amount.
+                        The value must be between -999,999,999 and +999,999,999 inclusive.
+                        If `units` is positive, `nanos` must be positive or zero.
+                        If `units` is zero, `nanos` can be positive, zero, or negative.
+                        If `units` is negative, `nanos` must be negative or zero.
+                        For example $-1.75 is represented as `units`=-1 and `nanos`=-750,000,000.
+                units:
+                    type: integer
+                    format: int64
+                    description: |-
+                        The whole units of the amount.
+                        For example if `currencyCode` is `"USD"`, then 1 unit is one US dollar.
+        payment.v1alpha1.Order:
+            type: object
+            description: Order represents a monetary order.
+            properties:
+                amount:
+                    $ref: '#/components/schemas/google.type.Money'
+                order_id:
+                    type: string
+                payment_provider:
+                    $ref: '#/components/schemas/payment.v1alpha1.PaymentProvider'
+                recipient_id:
+                    type: string
+        payment.v1alpha1.PaymentProvider:
+            type: string
+            description: |-
+                PaymentProvider represents the supported set
+                of payment providers.
+            enum:
+                - PAYMENT_PROVIDER_UNSPECIFIED
+                - PAYMENT_PROVIDER_STRIPE
+                - PAYMENT_PROVIDER_PAYPAL
+                - PAYMENT_PROVIDER_APPLE
+        pet.v1.DeletePetRequest:
+            type: object
+            properties:
+                pet_id:
+                    type: string
+        pet.v1.GetPetRequest:
+            type: object
+            description: |-
+                GetPetRequest is the request object for GetPet
+                The message accepts a pet id as an input
+            properties:
+                pet_id:
+                    type: string
+        pet.v1.GetPetResponse:
+            type: object
+            properties:
+                pet:
+                    $ref: '#/components/schemas/pet.v1.Pet'
+        pet.v1.Pet:
+            type: object
+            description: Pet represents a pet in the pet store.
+            properties:
+                created_at:
+                    type: string
+                    format: date-time
+                details:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/google.protobuf.Any'
+                labels:
+                    $ref: '#/components/schemas/google.protobuf.ListValue'
+                name:
+                    type: string
+                payment_provider:
+                    $ref: '#/components/schemas/payment.v1alpha1.PaymentProvider'
+                pet_id:
+                    type: string
+                    description: |-
+                        pet_id is an auto-generated id for the pet
+                        the id uniquely identifies a pet in the system
+                pet_type:
+                    $ref: '#/components/schemas/pet.v1.PetType'
+                pet_types:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/pet.v1.PetType'
+                tags:
+                    type: array
+                    items:
+                        type: string
+                vet:
+                    $ref: '#/components/schemas/pet.v1.Vet'
+                vets:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/pet.v1.Vet'
+        pet.v1.PetType:
+            type: string
+            description: PetType represents the different types of pets in the pet store.
+            enum:
+                - PET_TYPE_UNSPECIFIED
+                - PET_TYPE_CAT
+                - PET_TYPE_DOG
+                - PET_TYPE_SNAKE
+                - PET_TYPE_HAMSTER
+        pet.v1.PurchasePetRequest:
+            type: object
+            properties:
+                order:
+                    $ref: '#/components/schemas/payment.v1alpha1.Order'
+                pet_id:
+                    type: string
+        pet.v1.PurchasePetResponse:
+            type: object
+        pet.v1.PutPetRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                pet_type:
+                    $ref: '#/components/schemas/pet.v1.PetType'
+        pet.v1.PutPetResponse:
+            type: object
+            properties:
+                pet:
+                    $ref: '#/components/schemas/pet.v1.Pet'
+        pet.v1.Vet:
+            type: object
+            properties:
+                name:
+                    type: string
+info:
+    title: Pet API
+    version: "1.0"
+paths:
+    /pet.v1.PetStoreService/DeletePet:
+        post:
+            summary: DeletePet
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/pet.v1.DeletePetRequest'
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json: {}
+    /pet.v1.PetStoreService/GetPet:
+        post:
+            summary: GetPet
+            description: |4-
+                GetPet returns details about a pet
+                It accepts a pet id as an input and returns back the matching pet object
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/pet.v1.GetPetRequest'
+                        example:
+                            example 0:
+                                pet_id: "123"
+                            example 1:
+                                pet_id: "456"
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/pet.v1.GetPetResponse'
+                            example:
+                                example 0:
+                                    pet:
+                                        name: toby
+    /pet.v1.PetStoreService/PurchasePet:
+        post:
+            summary: PurchasePet
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/pet.v1.PurchasePetRequest'
+            responses:
+                "200":
+                    description: Success
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/pet.v1.PurchasePetResponse'
+servers:
+    - url: https://petapi.example.com

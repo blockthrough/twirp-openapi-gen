@@ -1,4 +1,4 @@
-module github.com/diogogmt/twirp-openapi-gen
+module github.com/blockthrough/twirp-openapi-gen
 
 go 1.20
 

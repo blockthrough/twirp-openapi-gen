@@ -32,15 +32,27 @@ gen:
 
 ## pet-api: generate pet api openapi json doc
 pet-api:
-  twirp-openapi-gen \
-    -in ./internal/generator/testdata/petapis/pet/v1/pet.proto \
-    -out ./internal/generator/testdata/pet-api-doc.json \
-    -proto-path "$(shell realpath ./internal/generator/testdata/paymentapis/)" \
-    -proto-path "$(shell realpath ./internal/generator/testdata/petapis/)" \
-    -servers https://petapi.example.com \
-    -path-prefix "" \
-    -doc-version 1.0 \
-    -title "Pet API"
+	./build/twirp-openapi-gen \
+		-in ./internal/generator/testdata/petapis/pet/v1/pet.proto \
+		-out ./internal/generator/testdata/pet-api-doc.json \
+		-proto-path "$(shell realpath ./internal/generator/testdata/paymentapis/)" \
+		-proto-path "$(shell realpath ./internal/generator/testdata/petapis/)" \
+		-servers https://petapi.example.com \
+		-path-prefix "" \
+		-doc-version 1.0 \
+		-title "Pet API"
+
+pet-api-yaml:
+	./build/twirp-openapi-gen \
+		-format yml \
+		-in ./internal/generator/testdata/petapis/pet/v1/pet.proto \
+		-out ./internal/generator/testdata/pet-api-doc.yaml \
+		-proto-path "$(shell realpath ./internal/generator/testdata/paymentapis/)" \
+		-proto-path "$(shell realpath ./internal/generator/testdata/petapis/)" \
+		-servers https://petapi.example.com \
+		-path-prefix "" \
+		-doc-version 1.0 \
+		-title "Pet API"
 
 ## tools: download tools; buf, protoc-gen-go and protoc-gen-twirp
 tools:

@@ -30,6 +30,7 @@ service PetStoreService {
 
   rpc DeletePet(DeletePetRequest) returns (google.protobuf.Empty) {}
   rpc PurchasePet(PurchasePetRequest) returns (PurchasePetResponse) {}
+  rpc UpdatePet(UpdatePetRequest) returns (UpdatePetResponse) {}
 }
 
 // GetPetRequest is the request object for GetPet
@@ -58,6 +59,15 @@ message DeletePetRequest {
 message PurchasePetRequest {
   string pet_id = 1;
   payment.v1alpha1.Order order = 2;
+}
+
+message UpdatePetRequest {
+  string pet_id = 1;
+  google.protobuf.Struct metadata = 2;
+}
+
+message UpdatePetResponse {
+  Pet pet = 1;
 }
 
 message PurchasePetResponse {}
@@ -90,6 +100,8 @@ message Pet {
   google.protobuf.ListValue labels = 101;
 
   repeated string tags = 102;
+
+  google.protobuf.Struct metadata = 103;
 
 // TODO(dm): add support for oneof
 //  oneof test_oneof {
